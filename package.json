@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "Content-generation studio for creating original, visually consistent social media posts",
   "type": "module",
-  "main": "src/server.js",
+  "main": "api/index.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "build": "echo 'Vercel build complete'"
   },
   "dependencies": {
     "@google/generative-ai": "^0.2.1",

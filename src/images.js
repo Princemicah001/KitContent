@@ -13,10 +13,8 @@ export async function generateImage(prompt, options = {}) {
 }
 
 async function generatePollinationsImage(prompt, options) {
-  // Pollinations doesn't need an API key for basic usage, but we can set a seed for uniqueness
   const seed = crypto.randomInt(0, 1000000);
   const encodedPrompt = encodeURIComponent(prompt);
-  // Default dimensions 1080x1920 (9:16)
   const width = options.width || 1080;
   const height = options.height || 1920;
   const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
@@ -40,11 +38,13 @@ async function generatePollinationsImage(prompt, options) {
   
   const filename = `post_${Date.now()}_${seed}_bg.jpg`;
   const relativePath = path.join('generated', 'images', filename);
-  const absolutePath = path.join(process.cwd(), relativePath);
+  const baseDir = process.env.VERCEL ? '/tmp' : process.cwd();
+  const absolutePath = path.join(baseDir, relativePath);
   
+  await fs.mkdir(path.dirname(absolutePath), { recursive: true });
   await fs.writeFile(absolutePath, buffer);
   
-  return absolutePath; // returns absolute path to be used by canvas
+  return absolutePath;
 }
 
 export function isImageProviderConfigured() {

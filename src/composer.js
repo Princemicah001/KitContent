@@ -8,10 +8,8 @@ export async function composePost(post, bgImagePath) {
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext('2d');
 
-  // Load and draw background
   try {
     const bg = await loadImage(bgImagePath);
-    // Draw background to cover the entire canvas (center crop)
     const scale = Math.max(canvas.width / bg.width, canvas.height / bg.height);
     const x = (canvas.width / 2) - (bg.width / 2) * scale;
     const y = (canvas.height / 2) - (bg.height / 2) * scale;
@@ -50,7 +48,7 @@ export async function composePost(post, bgImagePath) {
     currentY += 85;
   }
   
-  currentY += 60; // spacing
+  currentY += 60;
 
   // Body (Secondary)
   ctx.fillStyle = '#DDDDDD';
@@ -61,7 +59,7 @@ export async function composePost(post, bgImagePath) {
     currentY += 55;
   }
 
-  currentY += 80; // spacing
+  currentY += 80;
 
   // Takeaway (Closing)
   ctx.fillStyle = '#FFFFFF';
@@ -79,12 +77,15 @@ export async function composePost(post, bgImagePath) {
 
   const filename = `post_${post.id}.png`;
   const relativePath = path.join('generated', 'posts', filename);
-  const absolutePath = path.join(process.cwd(), relativePath);
+  const baseDir = process.env.VERCEL ? '/tmp' : process.cwd();
+  const absolutePath = path.join(baseDir, relativePath);
+
+  await fs.mkdir(path.dirname(absolutePath), { recursive: true });
 
   const buffer = canvas.toBuffer('image/png');
   await fs.writeFile(absolutePath, buffer);
 
-  return relativePath; // Save relative path to DB
+  return relativePath;
 }
 
 function wrapText(ctx, text, maxWidth) {

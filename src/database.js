@@ -1,12 +1,19 @@
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
+import fs from 'fs/promises';
 
 let db;
 
 export async function initDb() {
+  if (db) return db;
+
+  const dbDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'data');
+  await fs.mkdir(dbDir, { recursive: true });
+  const dbPath = path.join(dbDir, 'kitcontent.db');
+
   db = await open({
-    filename: path.join(process.cwd(), 'data', 'kitcontent.db'),
+    filename: dbPath,
     driver: sqlite3.Database
   });
 
