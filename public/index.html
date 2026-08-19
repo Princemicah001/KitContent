@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full w-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KitContent Studio Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #f4ecff;
+        }
+
+        .card-shadow {
+            box-shadow: 0 4px 20px -2px rgba(124, 58, 237, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        .card-shadow-hover:hover {
+            box-shadow: 0 10px 25px -3px rgba(124, 58, 237, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.04);
+            transform: translateY(-2px);
+        }
+
+        /* Circular Dial Styling */
+        .dial-container {
+            position: relative;
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            background: conic-gradient(from 180deg at 50% 50%, #8b5cf6 0deg, #8b5cf6 280deg, #e2e8f0 280deg, #e2e8f0 360deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        .dial-inner {
+            width: 132px;
+            height: 132px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        .dial-knob {
+            width: 92px;
+            height: 92px;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            border-radius: 50%;
+            box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .progress-log-console {
+            font-family: 'ui-monospace', 'SFMono-Regular', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.8125rem;
+            color: #34d399;
+            background-color: #0f172a;
+            padding: 1.125rem;
+            border-radius: 1rem;
+            height: 210px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* TikTok Reels Snap Scroll Style */
+        .tiktok-feed-container {
+            scroll-snap-type: y mandatory;
+            overflow-y: scroll;
+            height: 100%;
+            width: 100%;
+            scroll-behavior: smooth;
+        }
+
+        .tiktok-slide {
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Custom Smooth Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(226, 232, 240, 0.5);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.3);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.6);
+        }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row w-screen h-screen overflow-hidden">
+
+    <!-- Mobile Top Header -->
+    <header class="md:hidden bg-white border-b border-purple-100 p-4 flex items-center justify-between z-30 shrink-0">
+        <div class="flex items-center">
+            <div class="bg-purple-600 text-white font-black italic text-lg w-8 h-8 flex items-center justify-center rounded-lg mr-2.5 shadow">K</div>
+            <span class="text-lg font-bold text-gray-900 tracking-tight">KitContent</span>
+        </div>
+        <button id="mobile-menu-btn" class="text-gray-600 hover:text-purple-600 focus:outline-none p-2">
+            <i class="fas fa-bars text-lg"></i>
+        </button>
+    </header>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="hidden md:flex flex-col w-full md:w-64 bg-white border-r border-purple-100/70 p-6 shrink-0 justify-between h-full z-20 overflow-y-auto">
+        <div class="space-y-6">
+            <!-- Brand Header -->
+            <div class="flex items-center cursor-pointer" onclick="showPage('dashboard')">
+                <div class="bg-gradient-to-tr from-purple-700 to-purple-500 text-white font-black italic text-xl w-10 h-10 flex items-center justify-center rounded-xl mr-3 shadow-md">K</div>
+                <div>
+                    <span class="text-lg font-extrabold text-gray-900 tracking-tight block leading-none">KitContent</span>
+                    <span class="text-[10px] font-semibold text-purple-600 uppercase tracking-wider">Studio Edition</span>
+                </div>
+            </div>
+
+            <!-- Global Search -->
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <i class="fas fa-search text-gray-400 text-xs"></i>
+                </span>
+                <input type="text" id="search-input" placeholder="Search topics, posts..." class="w-full bg-purple-50/70 text-gray-700 rounded-xl py-2.5 pl-9 pr-3 focus:outline-none text-xs placeholder-gray-400 border border-purple-100 focus:border-purple-300 focus:bg-white transition-all">
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="space-y-1">
+                <button onclick="showPage('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center py-2.5 px-3.5 rounded-xl bg-purple-600 text-white font-semibold transition duration-150 text-xs shadow-sm">
+                    <i class="fas fa-layer-group w-5 mr-2.5 text-sm"></i> Studio Dashboard
+                </button>
+                <button onclick="showPage('feed')" id="nav-feed" class="nav-btn w-full flex items-center py-2.5 px-3.5 rounded-xl text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition duration-150 text-xs font-medium">
+                    <i class="fas fa-film w-5 mr-2.5 text-sm text-pink-500"></i> TikTok Feed Player
+                </button>
+                <button onclick="showPage('analytics')" id="nav-analytics" class="nav-btn w-full flex items-center py-2.5 px-3.5 rounded-xl text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition duration-150 text-xs font-medium">
+                    <i class="far fa-chart-bar w-5 mr-2.5 text-sm text-indigo-500"></i> Production Analytics
+                </button>
+                <button onclick="showPage('quality')" id="nav-quality" class="nav-btn w-full flex items-center py-2.5 px-3.5 rounded-xl text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition duration-150 text-xs font-medium">
+                    <i class="fas fa-shield-alt w-5 mr-2.5 text-sm text-emerald-500"></i> Quality Metrics & AI
+                </button>
+                <button onclick="fetchTrendingTopics()" id="nav-trending" class="nav-btn w-full flex items-center py-2.5 px-3.5 rounded-xl text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition duration-150 text-xs font-medium">
+                    <i class="fas fa-globe w-5 mr-2.5 text-sm text-amber-500"></i> Search Grounding Trends
+                </button>
+            </nav>
+        </div>
+
+        <div class="space-y-4 pt-6 border-t border-purple-50">
+            <!-- System Connection Status Cards -->
+            <div class="bg-purple-50/60 p-3.5 rounded-2xl space-y-2 border border-purple-100/50">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-500 font-medium text-[11px]">Gemini 2.5 Flash</span>
+                    <span id="gemini-status" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-green-100 text-green-700">CONNECTED</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-500 font-medium text-[11px]">Groq Supervisor</span>
+                    <span id="groq-status" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-green-100 text-green-700 truncate max-w-[85px]">groq/compound</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-500 font-medium text-[11px]">Pollinations AI</span>
+                    <span id="image-status" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-green-100 text-green-700">CONNECTED</span>
+                </div>
+            </div>
+
+            <!-- Profile Info -->
+            <div class="flex items-center p-2 rounded-xl hover:bg-purple-50/70 transition cursor-pointer">
+                <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Studio Director" class="h-9 w-9 rounded-full mr-3 object-cover border-2 border-purple-200 shadow-sm">
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-bold text-gray-800 truncate">Content Studio</p>
+                    <p class="text-[10px] text-gray-400 truncate">Psychology Pipeline</p>
+                </div>
+                <i class="fas fa-cog text-gray-400 hover:text-purple-600 transition text-xs"></i>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Views Stack -->
+    <main class="flex-1 h-full overflow-hidden bg-[#f4ecff] relative">
+
+        <!-- VIEW 1: STUDIO DASHBOARD -->
+        <div id="page-dashboard" class="page-view h-full overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div class="max-w-[1600px] mx-auto space-y-6">
+                
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <!-- Left Main Column (8 cols) -->
+                    <div class="lg:col-span-7 xl:col-span-8 space-y-6">
+                        
+                        <!-- Welcome Hero Header -->
+                        <div class="bg-white rounded-2xl p-6 sm:p-7 card-shadow flex flex-col sm:flex-row justify-between items-start sm:items-center relative overflow-hidden border border-purple-100/60">
+                            <div class="z-10 max-w-lg mb-4 sm:mb-0">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <span class="bg-purple-100 text-purple-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Production Active</span>
+                                    <span class="text-gray-400 text-xs">• 1080x1920 Verticals</span>
+                                </div>
+                                <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">KitContent Studio</h1>
+                                <p class="text-xs sm:text-sm text-gray-500 mt-1">Automated 20-topic pool queueing with Groq AI supervisor auditing & zero duplicate content.</p>
+                                
+                                <div class="flex items-center mt-5 space-x-4">
+                                    <div class="flex items-center">
+                                        <span class="text-3xl font-black text-purple-700 mr-2.5" id="stat-ready">0</span>
+                                        <span class="text-xs font-bold text-gray-600 bg-purple-50 border border-purple-100 px-3 py-1 rounded-xl">Posts Ready</span>
+                                    </div>
+                                    <div class="h-8 w-px bg-purple-100"></div>
+                                    <div class="text-xs text-gray-500">
+                                        <span class="font-bold text-gray-800">Pre-Audited Topic Pool</span>
+                                        <p class="text-[10px] text-purple-600 font-bold" id="stat-pooled-count">0 Available in Pool</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Schedule Badge Box -->
+                            <div class="z-10 shrink-0 w-full sm:w-auto">
+                                <div class="bg-gradient-to-br from-purple-50 to-purple-100/50 p-4 sm:p-5 rounded-2xl border border-purple-200/50 text-left sm:text-right">
+                                    <p class="text-[10px] text-purple-700 font-extrabold uppercase tracking-wider mb-1">Automation Schedule</p>
+                                    <span id="stat-schedule" class="text-xl sm:text-2xl font-black text-purple-700">OFF</span>
+                                    <p class="text-[10px] font-medium text-gray-500 mt-1" id="stat-approved-count">0 Approved Posts</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Studio Controls Grid -->
+                        <div>
+                            <h2 class="text-gray-900 font-bold text-sm mb-3 flex items-center tracking-tight">
+                                <i class="fas fa-sliders-h text-purple-600 mr-2 text-xs"></i> Studio Controls & Automation
+                            </h2>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                                
+                                <div class="bg-white p-4 rounded-2xl card-shadow border border-purple-100/60 flex flex-col justify-between h-34">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-[10px] font-extrabold text-purple-700 uppercase tracking-wider">BATCH SIZE</span>
+                                        <div class="w-6 h-6 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
+                                            <i class="fas fa-layer-group text-[10px]"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <select id="count-select" class="w-full bg-purple-50 border border-purple-200 text-gray-900 text-xs font-bold rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-purple-400">
+                                            <option value="1">1 Post</option>
+                                            <option value="3">3 Posts</option>
+                                            <option value="5" selected>5 Posts</option>
+                                            <option value="10">10 Posts</option>
+                                            <option value="15">15 Posts</option>
+                                            <option value="20">20 Posts</option>
+                                        </select>
+                                        <p class="text-[10px] font-medium text-gray-500 mt-1.5">Target Quantity</p>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white p-4 rounded-2xl card-shadow border border-purple-100/60 flex flex-col justify-between h-34">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-[10px] font-extrabold text-purple-700 uppercase tracking-wider">AUTOMATION</span>
+                                        <div class="w-6 h-6 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
+                                            <i class="fas fa-clock text-[10px]"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <select id="schedule-select" class="w-full bg-purple-50 border border-purple-200 text-gray-900 text-xs font-bold rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-purple-400">
+                                            <option value="off" selected>Manual (Off)</option>
+                                            <option value="1h">Every 1 Hour</option>
+                                            <option value="6h">Every 6 Hours</option>
+                                            <option value="12h">Every 12 Hours</option>
+                                            <option value="24h">Every 24 Hours</option>
+                                        </select>
+                                        <p class="text-[10px] font-medium text-gray-500 mt-1.5">Recurring Runner</p>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white p-4 rounded-2xl card-shadow border border-purple-100/60 flex flex-col justify-between h-34">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider">GROQ AUDITOR</span>
+                                        <i class="fas fa-robot text-emerald-600 text-xs"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-800">Groq Supervisor</p>
+                                        <p class="text-[10px] font-medium text-gray-400 mt-0.5">Live Model Auto-Select</p>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white p-4 rounded-2xl card-shadow border border-purple-100/60 flex flex-col justify-between h-34">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider">20-TOPIC BATCH</span>
+                                        <i class="fas fa-cubes text-amber-600 text-xs"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-800">Topic Pool Queue</p>
+                                        <p class="text-[10px] font-medium text-gray-400 mt-0.5">Low API Credit Cost</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Circular Launch Dial Card -->
+                        <div class="bg-white rounded-2xl p-6 card-shadow flex flex-col items-center relative border border-purple-100/60">
+                            <div class="w-full flex justify-between items-center mb-5 pb-4 border-b border-purple-50">
+                                <div class="flex items-center">
+                                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-700 to-purple-500 text-white flex items-center justify-center mr-3 shadow-md">
+                                        <i class="fas fa-bolt text-xs"></i>
+                                    </div>
+                                    <div>
+                                        <span class="font-extrabold text-gray-900 text-sm block">Generation Launch Studio</span>
+                                        <span class="text-[11px] text-gray-500 font-medium" id="dial-status-text">Ready to initiate non-repetitive post generation</span>
+                                    </div>
+                                </div>
+                                <span id="progress-status-badge" class="px-3.5 py-1 rounded-full text-xs font-extrabold bg-purple-100 text-purple-700 tracking-wide">Idle</span>
+                            </div>
+
+                            <div class="flex items-center justify-center space-x-6 sm:space-x-8 my-3">
+                                <button id="dial-minus" class="w-11 h-11 rounded-2xl bg-purple-100 hover:bg-purple-200 text-purple-700 flex items-center justify-center transition font-bold shadow-sm active:scale-95">
+                                    <i class="fas fa-minus text-xs"></i>
+                                </button>
+
+                                <div class="relative">
+                                    <div class="dial-container">
+                                        <div class="dial-inner">
+                                            <div class="dial-knob">
+                                                <span class="text-3xl font-black tracking-tight" id="dial-count-display">5</span>
+                                                <span class="text-[9px] uppercase font-bold text-purple-200 tracking-wider">POSTS</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span class="absolute -top-6 left-1/2 transform -translate-x-1/2 text-[10px] text-gray-400 font-bold">20</span>
+                                    <span class="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-[10px] text-gray-400 font-bold">1</span>
+                                    <span class="absolute top-1/2 -left-7 transform -translate-y-1/2 text-[10px] text-gray-400 font-bold">3</span>
+                                    <span class="absolute top-1/2 -right-7 transform -translate-y-1/2 text-[10px] text-gray-400 font-bold">15</span>
+                                </div>
+
+                                <button id="dial-plus" class="w-11 h-11 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center transition font-bold shadow-md active:scale-95">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
+                            </div>
+
+                            <button id="generate-btn" class="mt-6 w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-extrabold text-sm transition-all duration-200 flex items-center justify-center space-x-2.5 shadow-lg shadow-purple-600/30 active:scale-[0.99]">
+                                <i class="fas fa-play text-xs"></i>
+                                <span>START GENERATION BATCH</span>
+                            </button>
+                        </div>
+
+                        <!-- Real-Time Progress Log Console -->
+                        <div id="progress-container" class="bg-white rounded-2xl p-6 card-shadow border border-purple-100/60">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-xs font-extrabold text-gray-800 uppercase tracking-wider flex items-center">
+                                    <i class="fas fa-terminal text-purple-600 mr-2 text-xs"></i> Studio Production Console Log
+                                </h3>
+                                <span class="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">Live Stream</span>
+                            </div>
+                            <div id="progress-log" class="progress-log-console">
+                                <div>Ready. Click START GENERATION BATCH to begin...</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Right Column (4 cols) -->
+                    <div class="lg:col-span-5 xl:col-span-4 space-y-6">
+                        
+                        <!-- Quick Stats Summary Widget -->
+                        <div class="bg-white rounded-2xl p-5 sm:p-6 card-shadow border border-purple-100/60">
+                            <div class="flex justify-between items-center mb-4">
+                                <div class="flex items-center text-xs font-bold text-gray-900">
+                                    <div class="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center mr-2.5 text-[10px] shadow-sm">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                    Production Metrics
+                                </div>
+                                <span class="text-[11px] font-extrabold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-xl" id="stat-total-count">0 Total</span>
+                            </div>
+                            
+                            <div class="space-y-3 text-xs">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-500 font-medium">Pipeline Success Rate</span>
+                                    <span class="font-bold text-emerald-600" id="stat-success-rate">100%</span>
+                                </div>
+                                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                    <div id="bar-success-rate" class="bg-emerald-500 h-full rounded-full" style="width: 100%"></div>
+                                </div>
+
+                                <div class="flex justify-between items-center pt-2">
+                                    <span class="text-gray-500 font-medium">Avg Authenticity Score</span>
+                                    <span class="font-bold text-purple-600" id="stat-avg-authenticity">95/100</span>
+                                </div>
+                                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                                    <div id="bar-avg-authenticity" class="bg-purple-600 h-full rounded-full" style="width: 95%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Generated Posts Cards Grid -->
+                        <div id="recent-posts-section" class="bg-white rounded-2xl p-5 sm:p-6 card-shadow border border-purple-100/60">
+                            <div class="flex justify-between items-center mb-4">
+                                <div>
+                                    <h3 class="text-gray-900 font-extrabold text-sm tracking-tight">Generated Posts</h3>
+                                    <p class="text-[10px] text-gray-400">Click post preview or open TikTok Reel Player</p>
+                                </div>
+                                <button onclick="fetchPosts()" class="text-xs text-purple-600 hover:text-purple-800 font-bold bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-xl transition flex items-center space-x-1">
+                                    <i class="fas fa-sync-alt text-[10px]"></i>
+                                    <span>Refresh</span>
+                                </button>
+                            </div>
+                            
+                            <div id="posts-grid" class="grid grid-cols-2 gap-3 max-h-[580px] overflow-y-auto pr-1">
+                                <!-- Cards dynamically rendered here -->
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: TIKTOK STYLE REEL GALLERY PAGE -->
+        <div id="page-feed" class="page-view hidden h-full w-full bg-black relative">
+            <div class="absolute top-4 left-4 z-40 flex items-center space-x-3 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 text-white">
+                <i class="fas fa-film text-pink-500 text-lg"></i>
+                <div>
+                    <h2 class="text-xs font-bold tracking-wider uppercase">TikTok Reel Gallery</h2>
+                    <p class="text-[10px] text-gray-400">Scroll Up/Down to view posts</p>
+                </div>
+            </div>
+
+            <!-- TikTok Vertical Snap Scroll Gallery Container -->
+            <div id="tiktok-feed-container" class="tiktok-feed-container">
+                <!-- Dynamically populated TikTok slides -->
+            </div>
+        </div>
+
+        <!-- VIEW 3: PRODUCTION ANALYTICS PAGE -->
+        <div id="page-analytics" class="page-view hidden h-full overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div class="max-w-[1400px] mx-auto space-y-6">
+                <div class="flex justify-between items-center mb-2">
+                    <div>
+                        <h1 class="text-2xl font-black text-gray-900 tracking-tight">Production Analytics & Health</h1>
+                        <p class="text-xs text-gray-500">Real-time metrics on API performance, Groq AI log interpretation, and topic pool status.</p>
+                    </div>
+                    <button onclick="fetchStats()" class="bg-purple-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-purple-700 transition">
+                        <i class="fas fa-sync-alt mr-1.5"></i> Refresh Analytics
+                    </button>
+                </div>
+
+                <!-- Groq AI Human Log Summary Card -->
+                <div class="bg-gradient-to-r from-purple-900 to-indigo-900 text-white rounded-3xl p-6 shadow-xl space-y-3 relative overflow-hidden border border-purple-700/50">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-2xl bg-purple-500/30 backdrop-blur-md flex items-center justify-center text-purple-300 font-extrabold text-sm border border-purple-400/30">
+                            🤖
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-extrabold tracking-wide uppercase text-purple-200">Groq AI Log Interpreter & System Analyst</h3>
+                            <p class="text-[10px] text-purple-300">Natural English interpretation of technical console logs & operational parameters</p>
+                        </div>
+                    </div>
+                    <p id="groq-human-summary" class="text-xs text-purple-100 leading-relaxed font-medium bg-black/30 p-4 rounded-2xl border border-white/10">
+                        Analyzing system metrics and operational logs with Groq AI...
+                    </p>
+                </div>
+
+                <!-- Metric Cards Row -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div class="bg-white p-5 rounded-2xl card-shadow border border-purple-100">
+                        <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">TOTAL ATTEMPTS</div>
+                        <div class="text-2xl font-black text-gray-900" id="analytics-total-attempts">0</div>
+                        <div class="text-[10px] text-gray-400 mt-1">Generations & Candidates</div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl card-shadow border border-purple-100">
+                        <div class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">PIPELINE SUCCESS RATE</div>
+                        <div class="text-2xl font-black text-emerald-600" id="analytics-success-rate">100%</div>
+                        <div class="text-[10px] text-gray-400 mt-1">First-pass completion</div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl card-shadow border border-purple-100">
+                        <div class="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">API RATE LIMIT (429)</div>
+                        <div class="text-2xl font-black text-amber-600" id="analytics-api-failures">0</div>
+                        <div class="text-[10px] text-gray-400 mt-1">Auto-cooldown backoffs</div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl card-shadow border border-purple-100">
+                        <div class="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-1">REPETITION BLOCKED</div>
+                        <div class="text-2xl font-black text-purple-600" id="analytics-repetition-blocked">0</div>
+                        <div class="text-[10px] text-gray-400 mt-1">Duplicate topics filtered</div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl card-shadow border border-purple-100">
+                        <div class="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1">AUTHENTICITY SCORE</div>
+                        <div class="text-2xl font-black text-blue-600" id="analytics-authenticity">95/100</div>
+                        <div class="text-[10px] text-gray-400 mt-1">Empirical audit score</div>
+                    </div>
+                </div>
+
+                <!-- Detailed Breakdown Table -->
+                <div class="bg-white rounded-2xl p-6 card-shadow border border-purple-100 space-y-4">
+                    <h3 class="text-sm font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-clipboard-list text-purple-600 mr-2"></i> System Operations & Failure Log Summary
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="border-b border-gray-100 text-gray-400 uppercase text-[9px] font-bold">
+                                    <th class="py-3 px-4">Metric Category</th>
+                                    <th class="py-3 px-4">Logged Value</th>
+                                    <th class="py-3 px-4">Status / Action Taken</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-50 font-medium text-gray-700">
+                                <tr>
+                                    <td class="py-3.5 px-4 font-bold text-gray-900">Gemini API Rate Limit Quotas (429)</td>
+                                    <td class="py-3.5 px-4" id="table-api-429">0 Events</td>
+                                    <td class="py-3.5 px-4 text-emerald-600 font-bold">✓ Intelligently Paused & Resumed</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3.5 px-4 font-bold text-gray-900">Topic Duplication Prevention</td>
+                                    <td class="py-3.5 px-4" id="table-rep-blocked">0 Concepts Blocked</td>
+                                    <td class="py-3.5 px-4 text-purple-600 font-bold">✓ 100% Uniqueness Preserved</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3.5 px-4 font-bold text-gray-900">Low Quality Filter Rejections (<80)</td>
+                                    <td class="py-3.5 px-4" id="table-low-quality">0 Candidates Rejected</td>
+                                    <td class="py-3.5 px-4 text-blue-600 font-bold">✓ High-Quality Benchmark Enforced</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 4: QUALITY METRICS & AI REFINEMENT PAGE -->
+        <div id="page-quality" class="page-view hidden h-full overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div class="max-w-[1400px] mx-auto space-y-6">
+                <div>
+                    <h1 class="text-2xl font-black text-gray-900 tracking-tight">Quality Metrics & AI Corrections</h1>
+                    <p class="text-xs text-gray-500">Audit scores across all generated posts. Trigger instant AI quality corrections using Gemini.</p>
+                </div>
+
+                <div id="quality-posts-list" class="space-y-4">
+                    <!-- Quality audit list rendered here -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- SEARCH GROUNDING TRENDING MODAL -->
+    <div id="trending-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md hidden flex items-center justify-center z-50 p-4 sm:p-6 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 sm:p-8 relative shadow-2xl border border-purple-100 space-y-5">
+            <button onclick="closeTrendingModal()" class="absolute top-5 right-6 text-gray-400 hover:text-gray-800 text-2xl font-bold w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition">&times;</button>
+            
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow">
+                    <i class="fas fa-globe text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-black text-gray-900">Google Grounded Psychology Trends</h2>
+                    <p class="text-xs text-gray-500">Live trending research & viral human behavior concepts discoverable today</p>
+                </div>
+            </div>
+
+            <div id="trending-topics-container" class="space-y-3">
+                <!-- Dynamically loaded trends -->
+            </div>
+        </div>
+    </div>
+
+    <!-- POST DETAIL MODAL -->
+    <div id="post-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md hidden flex items-center justify-center z-50 p-4 sm:p-6 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 relative shadow-2xl border border-purple-100">
+            <button id="close-modal" class="absolute top-5 right-6 text-gray-400 hover:text-gray-800 text-2xl font-bold w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition">&times;</button>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Canvas Image Preview -->
+                <div class="flex items-center justify-center bg-gray-950 rounded-2xl overflow-hidden aspect-[9/16] shadow-md border border-gray-800">
+                    <img id="modal-img" src="" alt="Post Canvas" class="w-full h-full object-cover">
+                </div>
+                
+                <!-- Content Details Form & Refinement -->
+                <div class="flex flex-col justify-between space-y-4">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span id="modal-category" class="bg-purple-100 text-purple-700 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">Psychology</span>
+                            <span id="modal-quality" class="text-xs text-gray-500 font-bold">Score: 100</span>
+                        </div>
+                        <h2 id="modal-topic" class="text-xl font-black text-gray-900 mb-4 tracking-tight leading-tight">Topic Title</h2>
+                        
+                        <div class="space-y-3 text-xs">
+                            <div>
+                                <label class="font-bold text-gray-500 uppercase text-[9px] tracking-wider block mb-1">Hook</label>
+                                <textarea id="modal-hook" rows="2" class="w-full bg-purple-50/70 border border-purple-100 rounded-xl p-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-400 font-medium text-xs"></textarea>
+                            </div>
+                            <div>
+                                <label class="font-bold text-gray-500 uppercase text-[9px] tracking-wider block mb-1">Body</label>
+                                <textarea id="modal-body" rows="3" class="w-full bg-purple-50/70 border border-purple-100 rounded-xl p-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-400 font-medium text-xs"></textarea>
+                            </div>
+                            <div>
+                                <label class="font-bold text-gray-500 uppercase text-[9px] tracking-wider block mb-1">Takeaway</label>
+                                <textarea id="modal-takeaway" rows="2" class="w-full bg-purple-50/70 border border-purple-100 rounded-xl p-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-400 font-medium text-xs"></textarea>
+                            </div>
+                            <div>
+                                <label class="font-bold text-gray-500 uppercase text-[9px] tracking-wider block mb-1">Caption</label>
+                                <textarea id="modal-caption" rows="2" class="w-full bg-purple-50/70 border border-purple-100 rounded-xl p-2.5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-400 font-medium text-xs"></textarea>
+                            </div>
+
+                            <!-- AI Refinement Trigger -->
+                            <div class="pt-2 border-t border-purple-50">
+                                <label class="font-bold text-purple-700 uppercase text-[9px] tracking-wider block mb-1 flex items-center">
+                                    <i class="fas fa-magic mr-1"></i> AI Quality Correction Prompt
+                                </label>
+                                <div class="flex space-x-2">
+                                    <input type="text" id="refine-instruction" placeholder="e.g. Make hook punchier..." class="flex-1 bg-purple-50 border border-purple-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-400">
+                                    <button id="btn-refine" onclick="triggerRefinePost()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition">Refine</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-3 border-t border-gray-100 flex space-x-2">
+                        <button id="btn-approve" onclick="approveCurrentPost()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3 rounded-xl transition">👍 APPROVE</button>
+                        <button id="btn-reject" onclick="rejectCurrentPost()" class="bg-red-500 hover:bg-red-600 text-white font-bold text-xs px-4 py-3 rounded-xl transition">👎 REJECT</button>
+                        <a id="modal-download" download href="#" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs py-3 rounded-xl text-center shadow transition flex items-center justify-center space-x-1">
+                            <i class="fas fa-download text-xs"></i>
+                            <span>PNG</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>

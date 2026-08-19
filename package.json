@@ -1,0 +1,22 @@
+{
+  "name": "kitcontent",
+  "version": "1.0.0",
+  "description": "Content-generation studio for creating original, visually consistent social media posts",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.2.1",
+    "@napi-rs/canvas": "^0.1.65",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
+    "uuid": "^10.0.0"
+  },
+  "author": "",
+  "license": "ISC"
+}
