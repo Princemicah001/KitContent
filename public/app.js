@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchStats();
     fetchPosts();
     fetchSchedule();
+    syncDialWithSelect();
 
     document.getElementById('generate-btn').addEventListener('click', generatePosts);
     document.getElementById('schedule-time').addEventListener('change', updateSchedule);
@@ -82,8 +83,15 @@ function adjustDial(delta) {
 }
 
 function syncDialWithSelect() {
-    const val = document.getElementById('count-select').value;
+    const val = parseInt(document.getElementById('count-select').value, 10);
     document.getElementById('dial-count-display').textContent = val;
+    
+    // Dynamically calculate fill percentage based on 1 to 10
+    const degrees = ((val - 1) / 9) * 360;
+    const dialContainer = document.getElementById('dial-container');
+    if (dialContainer) {
+        dialContainer.style.background = `conic-gradient(from 180deg at 50% 50%, #8b5cf6 0deg, #8b5cf6 ${degrees}deg, #e2e8f0 ${degrees}deg, #e2e8f0 360deg)`;
+    }
 }
 
 async function fetchHealth() {
