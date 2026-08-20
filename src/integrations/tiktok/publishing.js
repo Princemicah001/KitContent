@@ -38,7 +38,9 @@ export async function publishPhotoToTikTok(post, privacyLevel, disableComment, a
       description: description,
       privacy_level: privacyLevel,
       disable_comment: disableComment,
-      auto_add_music: autoAddMusic
+      auto_add_music: autoAddMusic,
+      brand_content_toggle: false,
+      brand_organic_toggle: false
     },
     source_info: {
       source: "PULL_FROM_URL",
