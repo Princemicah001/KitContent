@@ -14,7 +14,7 @@ export async function getCreatorInfo() {
   });
 
   if (response.error || (response.data && response.data.error_code !== 0)) {
-    throw new Error(response.error_description || "Failed to query creator info");
+    throw new Error(response.error_description || (response.data && response.data.error_message) || JSON.stringify(response));
   }
 
   return response.data || response;

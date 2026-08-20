@@ -60,8 +60,9 @@ tiktokRouter.get('/status', async (req, res) => {
         privacy_options: creatorInfo.privacy_level_options || []
       });
     } catch (e) {
-      // If we fail to get creator info, token might be expired or revoked
-      res.json({ connected: true, error: "Requires Reauthorization" });
+      console.error("getCreatorInfo Error:", e.message);
+      // If we fail to get creator info, token might be expired or revoked or missing scopes
+      res.json({ connected: true, error: "Requires Reauthorization: " + e.message });
     }
   } catch (err) {
     res.status(500).json({ error: err.message });
