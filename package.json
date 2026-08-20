@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "build": "echo 'Vercel build complete'"
+    "build": "npx tailwindcss -i ./src/input.css -o ./public/output.css --minify && echo 'Build complete'"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
   },
   "dependencies": {
     "@google/generative-ai": "^0.2.1",

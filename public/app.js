@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Auto-refresh posts & progress every 2 seconds
     setInterval(() => {
+        if (!tiktokConnected) return;
         fetchStats();
         fetchPosts();
         pollProgress();
