@@ -39,7 +39,7 @@ tiktokRouter.get('/callback', async (req, res) => {
     const sessionId = await createSession(openId);
     
     // Set session cookie
-    const cookieOpts = { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 1000 * 60 * 60 * 24 * 7, sameSite: 'lax' };
+    const cookieOpts = { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 1000 * 60 * 60 * 24 * 7, sameSite: 'lax', path: '/' };
     res.cookie('session_id', sessionId, cookieOpts);
     
     res.redirect('/?tiktok_connected=true');
@@ -96,7 +96,7 @@ tiktokRouter.post('/disconnect', async (req, res) => {
         }
       }
     }
-    res.clearCookie('session_id');
+    res.clearCookie('session_id', { path: '/' });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
