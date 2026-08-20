@@ -1,8 +1,12 @@
 import { getTikTokAccount, saveTikTokAccount } from '../../database.js';
 import { tiktokApiFetch } from './client.js';
 
-export async function getValidAccessToken() {
-  const account = await getTikTokAccount();
+export async function getValidAccessToken(openId) {
+  const account = await getTikTokAccount(openId);
+  return await refreshTikTokToken(account);
+}
+
+export async function refreshTikTokToken(account) {
   if (!account) return null;
 
   const now = Math.floor(Date.now() / 1000);

@@ -78,6 +78,8 @@ export async function handleCallback(code, state, savedState, savedVerifier, dyn
     expires_at: expiresAt,
     scope: tokenData.scope
   });
+  
+  return tokenData.open_id;
 }
 
 export async function disconnectAccount() {

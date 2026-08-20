@@ -11,6 +11,7 @@ import { generateCandidate, generateBatchTopics, checkUniqueness, scoreQuality, 
 import { composePost } from './composer.js';
 import { validateCandidateJSON, validateGeneratedImage, validateFinalPostPNG } from './validation.js';
 import { tiktokRouter } from './integrations/tiktok/routes.js';
+import { requireAuth } from './middleware/auth.js';
 
 dotenv.config();
 
@@ -83,9 +84,9 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
-app.get('/api/posts', async (req, res) => {
+app.get('/api/posts', requireAuth, async (req, res) => {
   try {
-    const posts = await getPosts();
+    const posts = await getPosts(req.user.open_id);
     res.json(posts);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -114,12 +115,12 @@ app.delete('/api/posts/:id', async (req, res) => {
   }
 });
 
-app.post('/api/posts/:id/approve', async (req, res) => {
+app.post('/api/posts/:id/approve', requireAuth, async (req, res) => {
   try {
-    const post = await getPost(req.params.id);
+    const post = await getPost(req.params.id, req.user.open_id);
     if (!post) return res.status(404).json({ error: "Post not found" });
     post.status = 'APPROVED';
-    await savePost(post);
+    await savePost(post, req.user.open_id);
     await logMetric('post_approved', post.id);
     res.json(post);
   } catch (err) {
@@ -127,12 +128,12 @@ app.post('/api/posts/:id/approve', async (req, res) => {
   }
 });
 
-app.post('/api/posts/:id/reject', async (req, res) => {
+app.post('/api/posts/:id/reject', requireAuth, async (req, res) => {
   try {
-    const post = await getPost(req.params.id);
+    const post = await getPost(req.params.id, req.user.open_id);
     if (!post) return res.status(404).json({ error: "Post not found" });
     post.status = 'REJECTED';
-    await savePost(post);
+    await savePost(post, req.user.open_id);
     await logMetric('post_rejected', post.id);
     res.json(post);
   } catch (err) {
@@ -140,9 +141,9 @@ app.post('/api/posts/:id/reject', async (req, res) => {
   }
 });
 
-app.post('/api/posts/:id/refine', async (req, res) => {
+app.post('/api/posts/:id/refine', requireAuth, async (req, res) => {
   try {
-    const post = await getPost(req.params.id);
+    const post = await getPost(req.params.id, req.user.open_id);
     if (!post) return res.status(404).json({ error: "Post not found" });
     
     addLog(`🔧 AI Quality Refinement requested for topic "${post.topic}"...`);
@@ -156,7 +157,7 @@ app.post('/api/posts/:id/refine', async (req, res) => {
       post.final_image_path = finalImagePath;
     }
     
-    await savePost(post);
+    await savePost(post, req.user.open_id);
     await logMetric('post_refined', post.id);
     addLog(`✨ Post "${post.topic}" successfully refined and re-composed!`);
     res.json(post);
@@ -166,9 +167,9 @@ app.post('/api/posts/:id/refine', async (req, res) => {
   }
 });
 
-app.get('/api/stats', async (req, res) => {
+app.get('/api/stats', requireAuth, async (req, res) => {
   try {
-    const stats = await getStats();
+    const stats = await getStats(req.user.open_id);
     res.json(stats);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -240,7 +241,7 @@ async function ensureTopicPoolFilled(requiredCount = 5) {
   return await getUnconsumedTopicPool();
 }
 
-async function runGenerationBatch(targetCount = 10, seedTopic = null) {
+async function runGenerationBatch(targetCount = 10, seedTopic = null, userId = null) {
   if (isGenerating) return;
   isGenerating = true;
   
@@ -271,7 +272,7 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null) {
         created_at: new Date().toISOString()
       };
       
-      await savePost(post);
+      await savePost(post, userId);
       
       while (attempts < 10) {
         attempts++;
@@ -387,7 +388,7 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null) {
           if (imgAttempts === 3) {
             post.status = 'FAILED';
             post.error = `Image generation failed: ${err.message}`;
-            await savePost(post);
+            await savePost(post, userId);
             await logMetric('image_failed', { id: post.id, error: err.message });
             addLog(`💥 Post ${postNumber}/${targetCount} image generation failed.`);
           } else {
@@ -406,7 +407,7 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null) {
         
         post.final_image_path = finalImagePath;
         post.status = 'READY';
-        await savePost(post);
+        await savePost(post, userId);
         await logMetric('post_success', { id: post.id, topic: post.topic });
         successCount++;
         addLog(`✅ Post ${postNumber}/${targetCount} SUCCESS! Final PNG ready.`);
@@ -414,7 +415,7 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null) {
         addLog(`💥 Post ${postNumber}/${targetCount} Composition error: ${err.message}`);
         post.status = 'FAILED';
         post.error = `Composition failed: ${err.message}`;
-        await savePost(post);
+        await savePost(post, userId);
         await logMetric('composition_failed', { id: post.id, error: err.message });
       }
     }
@@ -428,7 +429,7 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null) {
   }
 }
 
-app.post('/api/generate', async (req, res) => {
+app.post('/api/generate', requireAuth, async (req, res) => {
   if (!process.env.GEMINI_API_KEY) {
     return res.status(400).json({ error: "GEMINI_API_KEY is not configured" });
   }
@@ -443,7 +444,8 @@ app.post('/api/generate', async (req, res) => {
   const targetCount = (count >= 1 && count <= 20) ? count : 10;
   
   progressLogs = [];
-  runGenerationBatch(targetCount, req.body.topic || null);
+  const userId = req.user.open_id;
+  runGenerationBatch(targetCount, req.body.topic || null, userId);
   
   res.json({ message: `Generation started for ${targetCount} posts`, expectedCount: targetCount });
 });

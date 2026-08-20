@@ -3,8 +3,8 @@ import { getValidAccessToken } from './tokens.js';
 import { getCreatorInfo } from './creator.js';
 import { savePost } from '../../database.js';
 
-export async function publishPhotoToTikTok(post, privacyLevel, disableComment, autoAddMusic, dynamicBaseUrl) {
-  const accessToken = await getValidAccessToken();
+export async function publishPhotoToTikTok(post, privacyLevel, disableComment, autoAddMusic, dynamicBaseUrl, openId) {
+  const accessToken = await getValidAccessToken(openId);
   if (!accessToken) throw new Error("Not connected to TikTok");
 
   // Validate we have a final image path
@@ -19,7 +19,7 @@ export async function publishPhotoToTikTok(post, privacyLevel, disableComment, a
   if (!imageUrl.startsWith('http')) imageUrl = `https://${imageUrl}`;
 
   // Make sure privacy level is allowed by creator info
-  const creatorInfo = await getCreatorInfo();
+  const creatorInfo = await getCreatorInfo(openId);
   const allowedPrivacy = creatorInfo.privacy_level_options || ['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'SELF_ONLY'];
   if (!allowedPrivacy.includes(privacyLevel)) {
     throw new Error(`Privacy level '${privacyLevel}' is not supported for this creator.`);

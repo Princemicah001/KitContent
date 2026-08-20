@@ -52,9 +52,15 @@ export async function initDb() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
-    CREATE TABLE IF NOT EXISTS tiktok_account (
-      id INTEGER PRIMARY KEY CHECK (id = 1), -- Single-user design for now
-      open_id TEXT,
+    CREATE TABLE IF NOT EXISTS sessions (
+      session_id TEXT PRIMARY KEY,
+      open_id TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME
+    );
+
+    CREATE TABLE IF NOT EXISTS tiktok_accounts (
+      open_id TEXT PRIMARY KEY,
       access_token TEXT,
       refresh_token TEXT,
       expires_at INTEGER,
@@ -72,6 +78,7 @@ export async function initDb() {
     if (!colNames.includes('tiktok_status')) await db.exec("ALTER TABLE posts ADD COLUMN tiktok_status TEXT;");
     if (!colNames.includes('tiktok_published_at')) await db.exec("ALTER TABLE posts ADD COLUMN tiktok_published_at DATETIME;");
     if (!colNames.includes('tiktok_error')) await db.exec("ALTER TABLE posts ADD COLUMN tiktok_error TEXT;");
+    if (!colNames.includes('user_id')) await db.exec("ALTER TABLE posts ADD COLUMN user_id TEXT;");
   } catch (e) {
     console.error("Migration error:", e);
   }
@@ -119,10 +126,10 @@ export async function consumeTopicFromPool(topicId) {
   await db.run("UPDATE topic_pool SET status = 'CONSUMED' WHERE id = ?", [topicId]);
 }
 
-export async function savePost(post) {
+export async function savePost(post, userId = null) {
   const query = `
-    INSERT INTO posts (id, category, topic, hook, body, takeaway, caption, hashtags, image_prompt, image_path, final_image_path, status, similarity_score, quality_score, updated_at, tiktok_publish_id, tiktok_status, tiktok_published_at, tiktok_error)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?)
+    INSERT INTO posts (id, category, topic, hook, body, takeaway, caption, hashtags, image_prompt, image_path, final_image_path, status, similarity_score, quality_score, updated_at, tiktok_publish_id, tiktok_status, tiktok_published_at, tiktok_error, user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       category=excluded.category,
       topic=excluded.topic,
@@ -162,12 +169,15 @@ export async function savePost(post) {
     post.tiktok_publish_id || null,
     post.tiktok_status || null,
     post.tiktok_published_at || null,
-    post.tiktok_error || null
+    post.tiktok_error || null,
+    userId || post.user_id || null
   ]);
 }
 
-export async function getPosts() {
-  const posts = await db.all('SELECT * FROM posts ORDER BY created_at DESC');
+export async function getPosts(userId = null) {
+  const query = userId ? 'SELECT * FROM posts WHERE user_id = ? ORDER BY created_at DESC' : 'SELECT * FROM posts ORDER BY created_at DESC';
+  const params = userId ? [userId] : [];
+  const posts = await db.all(query, params);
   return posts.map(p => ({
     ...p,
     hashtags: p.hashtags ? JSON.parse(p.hashtags) : []
@@ -185,15 +195,19 @@ export async function deletePost(id) {
   }
 }
 
-export async function getPost(id) {
-  const post = await db.get('SELECT * FROM posts WHERE id = ?', [id]);
+export async function getPost(id, userId = null) {
+  const query = userId ? 'SELECT * FROM posts WHERE id = ? AND user_id = ?' : 'SELECT * FROM posts WHERE id = ?';
+  const params = userId ? [id, userId] : [id];
+  const post = await db.get(query, params);
   if (post) {
     post.hashtags = post.hashtags ? JSON.parse(post.hashtags) : [];
   }
   return post;
 }
 
-export async function getStats() {
+export async function getStats(userId = null) {
+  const filter = userId ? 'WHERE user_id = ?' : '';
+  const params = userId ? [userId] : [];
   const stats = await db.get(`
     SELECT 
       COUNT(*) as total,
@@ -203,8 +217,8 @@ export async function getStats() {
       SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failed,
       AVG(CASE WHEN quality_score IS NOT NULL THEN quality_score ELSE 100 END) as avg_quality,
       AVG(CASE WHEN similarity_score IS NOT NULL THEN similarity_score ELSE 0 END) as avg_similarity
-    FROM posts
-  `);
+    FROM posts ${filter}
+  `, params);
 
   const poolCount = await db.get("SELECT COUNT(*) as count FROM topic_pool WHERE status = 'UNCONSUMED'");
 
@@ -240,14 +254,31 @@ export async function getStats() {
   };
 }
 
-export async function getTikTokAccount() {
+export async function getTikTokAccount(openId = null) {
   if (!db) return null;
+  if (openId) {
+    return await db.get('SELECT * FROM tiktok_accounts WHERE open_id = ?', [openId]);
+  }
   return await db.get('SELECT * FROM tiktok_account WHERE id = 1');
 }
 
 export async function saveTikTokAccount(account) {
   if (!db) return;
+  // Save to the new multi-tenant table
   const query = `
+    INSERT INTO tiktok_accounts (open_id, access_token, refresh_token, expires_at, scope, updated_at)
+    VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(open_id) DO UPDATE SET
+      access_token=excluded.access_token,
+      refresh_token=excluded.refresh_token,
+      expires_at=excluded.expires_at,
+      scope=excluded.scope,
+      updated_at=CURRENT_TIMESTAMP
+  `;
+  await db.run(query, [account.open_id, account.access_token, account.refresh_token, account.expires_at, account.scope]);
+
+  // Keep legacy backward compatibility for now just in case
+  const legacyQuery = `
     INSERT INTO tiktok_account (id, open_id, access_token, refresh_token, expires_at, scope, updated_at)
     VALUES (1, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(id) DO UPDATE SET
@@ -258,10 +289,38 @@ export async function saveTikTokAccount(account) {
       scope=excluded.scope,
       updated_at=CURRENT_TIMESTAMP
   `;
-  await db.run(query, [account.open_id, account.access_token, account.refresh_token, account.expires_at, account.scope]);
+  await db.run(legacyQuery, [account.open_id, account.access_token, account.refresh_token, account.expires_at, account.scope]);
 }
 
-export async function deleteTikTokAccount() {
+export async function deleteTikTokAccount(openId = null) {
   if (!db) return;
+  if (openId) {
+    await db.run('DELETE FROM tiktok_accounts WHERE open_id = ?', [openId]);
+  }
   await db.run('DELETE FROM tiktok_account WHERE id = 1');
+}
+
+// Session Management
+export async function createSession(openId) {
+  if (!db) return null;
+  const sessionId = require('crypto').randomUUID();
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7); // 7 day session
+  
+  await db.run(
+    'INSERT INTO sessions (session_id, open_id, expires_at) VALUES (?, ?, ?)',
+    [sessionId, openId, expiresAt.toISOString()]
+  );
+  return sessionId;
+}
+
+export async function getSession(sessionId) {
+  if (!db) return null;
+  const session = await db.get('SELECT * FROM sessions WHERE session_id = ? AND expires_at > CURRENT_TIMESTAMP', [sessionId]);
+  return session;
+}
+
+export async function deleteSession(sessionId) {
+  if (!db) return;
+  await db.run('DELETE FROM sessions WHERE session_id = ?', [sessionId]);
 }

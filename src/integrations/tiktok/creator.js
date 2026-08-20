@@ -1,8 +1,8 @@
 import { tiktokApiFetch } from './client.js';
 import { getValidAccessToken } from './tokens.js';
 
-export async function getCreatorInfo() {
-  const accessToken = await getValidAccessToken();
+export async function getCreatorInfo(openId) {
+  const accessToken = await getValidAccessToken(openId);
   if (!accessToken) throw new Error("Not connected to TikTok");
 
   const response = await tiktokApiFetch('/v2/post/publish/creator_info/query/', {

@@ -138,6 +138,7 @@ async function fetchHealth() {
 async function fetchStats() {
     try {
         const res = await fetch('/api/stats');
+        if (res.status === 401) return;
         const data = await res.json();
         
         document.getElementById('stat-ready').textContent = data.ready || 0;
@@ -203,6 +204,7 @@ async function fetchGroqInsights() {
 async function fetchSchedule() {
     try {
         const res = await fetch('/api/schedule');
+        if (res.status === 401) return;
         const data = await res.json();
         
         const input = document.getElementById('schedule-time');
@@ -280,6 +282,7 @@ function escapeHtml(text) {
 async function fetchPosts() {
     try {
         const res = await fetch('/api/posts');
+        if (res.status === 401) return;
         allPostsCache = await res.json();
         renderPostsGrid(allPostsCache);
         
@@ -656,6 +659,14 @@ async function checkTikTokStatus() {
         const data = await res.json();
         
         tiktokConnected = data.connected;
+        
+        const loginOverlay = document.getElementById('login-overlay');
+        if (!tiktokConnected) {
+            loginOverlay.classList.remove('hidden');
+        } else {
+            loginOverlay.classList.add('hidden');
+        }
+        
         const btn = document.getElementById('btn-tiktok-init');
         if (btn) btn.classList.toggle('hidden', !tiktokConnected);
         
@@ -665,6 +676,9 @@ async function checkTikTokStatus() {
             document.getElementById('tiktok-disconnected-view').classList.add('hidden');
             document.getElementById('tiktok-connected-view').classList.remove('hidden');
             document.getElementById('tiktok-creator-name').textContent = "@" + (data.creator || 'creator');
+            
+            const sidebarProfile = document.getElementById('sidebar-profile-name');
+            if (sidebarProfile) sidebarProfile.textContent = "@" + (data.creator || 'creator');
             
             // Populate privacy options based on creator info
             const privacySelect = document.getElementById('tiktok-privacy-select');
