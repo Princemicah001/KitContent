@@ -244,20 +244,18 @@ async function ensureTopicPoolFilled(requiredCount = 5, niche = 'Psychology') {
   return await getUnconsumedTopicPool();
 }
 
-async function runGenerationBatch(targetCount = 10, seedTopic = null, userId = null) {
+async function runGenerationBatch(targetCount = 10, seedTopic = null, userId = null, niche = 'Psychology') {
   if (isGenerating) return;
   isGenerating = true;
   
-  addLog(`🚀 Starting batch generation of ${targetCount} posts...`);
+  addLog(`🚀 Starting batch generation of ${targetCount} posts for niche: ${niche}...`);
   await logMetric('batch_started', { count: targetCount, seedTopic });
   
   try {
     let successCount = 0;
 
-    let activeNiche = seedTopic || 'Psychology';
-
     if (!seedTopic) {
-      await ensureTopicPoolFilled(targetCount, activeNiche);
+      await ensureTopicPoolFilled(targetCount, niche);
     }
     
     for (let i = 0; i < targetCount; i++) {
@@ -288,7 +286,7 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null, userId = n
             poolItem = currentPool[0];
             targetTopicName = poolItem.topic;
           } else {
-            await ensureTopicPoolFilled(5, activeNiche);
+            await ensureTopicPoolFilled(5, niche);
             continue;
           }
         }
@@ -299,7 +297,7 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null, userId = n
           const existingPosts = await getPosts();
           const existingTopics = existingPosts.map(p => p.topic).filter(Boolean);
           
-          candidate = await generateCandidate(existingTopics, targetTopicName, activeNiche);
+          candidate = await generateCandidate(existingTopics, targetTopicName, niche);
           addLog(`💡 Concept generated: "${candidate.topic}" (${candidate.category})`);
           
           uniqueInfo = await checkUniqueness(candidate);
@@ -448,9 +446,13 @@ app.post('/api/generate', requireAuth, async (req, res) => {
   const count = parseInt(req.body.count || 10, 10);
   const targetCount = (count >= 1 && count <= 20) ? count : 10;
   
+  // The 'topic' from the UI is meant to be the broad niche for the batch, not an exact post title.
+  // We'll pass it as 'niche', and leave 'seedTopic' null so the pool generates sub-topics.
+  const niche = req.body.topic || 'Psychology';
+  
   progressLogs = [];
   const userId = req.user.open_id;
-  runGenerationBatch(targetCount, req.body.topic || null, userId);
+  runGenerationBatch(targetCount, null, userId, niche);
   
   res.json({ message: `Generation started for ${targetCount} posts`, expectedCount: targetCount });
 });

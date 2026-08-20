@@ -23,7 +23,7 @@ export async function generateContentJSON(prompt, systemInstruction) {
   if (!apiKey) throw new Error("Gemini API key not configured in environment");
   
   const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const candidateModels = [primaryModel, 'gemini-1.5-flash', 'gemini-1.5-pro'].filter((v, i, a) => a.indexOf(v) === i);
+  const candidateModels = [primaryModel, 'gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'].filter((v, i, a) => a.indexOf(v) === i);
   
   let lastError = null;
   
@@ -99,7 +99,7 @@ export async function getTrendingPsychologyTopics() {
   if (!apiKey) apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("Gemini API key not configured");
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`;
   
   const payload = {
     contents: [

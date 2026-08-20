@@ -32,22 +32,20 @@ export async function fetchActiveGroqModel() {
     
     // Preference list for active Groq LLM models
     const preferenceList = [
-      'groq/compound',
-      'qwen/qwen3.6-27b',
-      'openai/gpt-oss-120b',
-      'groq/compound-mini',
       'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant'
+      'llama-3.1-8b-instant',
+      'mixtral-8x7b-32768',
+      'gemma2-9b-it'
     ];
 
-    const selected = preferenceList.find(m => availableIds.includes(m)) || availableIds[0] || 'groq/compound';
+    const selected = preferenceList.find(m => availableIds.includes(m)) || availableIds[0] || 'llama-3.1-8b-instant';
     cachedModel = selected;
     lastModelFetch = Date.now();
     console.log(`[Groq Auto-Discovery] Active model selected: ${selected}`);
     return selected;
   } catch (err) {
     console.warn(`Groq model discovery notice: ${err.message}`);
-    return cachedModel || 'groq/compound';
+    return cachedModel || 'llama-3.1-8b-instant';
   }
 }
 
