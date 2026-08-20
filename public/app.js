@@ -747,6 +747,7 @@ async function confirmTikTokPublish() {
         const data = await res.json();
         
         if (!res.ok) {
+            console.error("TikTok API Payload:", data.payload);
             throw new Error(data.error || "Failed to publish");
         }
         

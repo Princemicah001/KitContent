@@ -91,8 +91,24 @@ tiktokRouter.post('/publish/:postId', async (req, res) => {
     const host = req.get('host');
     const dynamicBaseUrl = `${protocol}://${host}`;
     
-    const result = await publishPhotoToTikTok(post, privacy_level, disable_comment, auto_add_music, dynamicBaseUrl);
-    res.json({ success: true, publish_id: result.publish_id });
+    const payloadLog = {
+      post_info: {
+        title: post.hook || "Generated Post",
+        privacy_level: privacy_level,
+        disable_comment: disable_comment,
+        auto_add_music: auto_add_music,
+        brand_content_toggle: false,
+        brand_organic_toggle: false
+      },
+      source_info: { source: "PULL_FROM_URL", photo_images: [`${dynamicBaseUrl}/${post.final_image_path}`] }
+    };
+    
+    try {
+      const result = await publishPhotoToTikTok(post, privacy_level, disable_comment, auto_add_music, dynamicBaseUrl);
+      res.json({ success: true, publish_id: result.publish_id });
+    } catch (publishErr) {
+      res.status(500).json({ error: publishErr.message, payload: payloadLog });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
