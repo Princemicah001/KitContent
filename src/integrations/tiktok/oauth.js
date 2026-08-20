@@ -15,7 +15,7 @@ export function getAuthorizationUrl(req, dynamicRedirectUri) {
   const codeChallenge = base64URLEncode(crypto.createHash('sha256').update(codeVerifier).digest());
   
   // Store state securely in a cookie or session. We'll use a secure HTTP-only cookie.
-  const redirectUri = process.env.TIKTOK_REDIRECT_URI || dynamicRedirectUri || 'http://localhost:3000/api/tiktok/callback';
+  const redirectUri = dynamicRedirectUri || 'http://localhost:3000/api/tiktok/callback';
   const clientKey = process.env.TIKTOK_CLIENT_KEY;
   
   const url = new URL('https://www.tiktok.com/v2/auth/authorize/');
@@ -40,7 +40,7 @@ export async function handleCallback(code, state, savedState, savedVerifier, dyn
 
   const clientKey = process.env.TIKTOK_CLIENT_KEY;
   const clientSecret = process.env.TIKTOK_CLIENT_SECRET;
-  const redirectUri = process.env.TIKTOK_REDIRECT_URI || dynamicRedirectUri || 'http://localhost:3000/api/tiktok/callback';
+  const redirectUri = dynamicRedirectUri || 'http://localhost:3000/api/tiktok/callback';
 
   const body = new URLSearchParams({
     client_key: clientKey,

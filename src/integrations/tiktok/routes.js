@@ -98,7 +98,7 @@ tiktokRouter.get('/debug-url', (req, res) => {
   
   const host = req.get('host');
   const dynamicRedirectUri = `${protocol}://${host}/api/tiktok/callback`;
-  const finalUri = process.env.TIKTOK_REDIRECT_URI || dynamicRedirectUri;
+  const finalUri = dynamicRedirectUri;
   
   res.send(`
     <h3>TikTok Debug</h3>
