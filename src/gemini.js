@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { groqFallbackGenerateJSON } from './groq.js';
 dotenv.config();
 
 let apiKey;
@@ -22,7 +23,7 @@ export async function generateContentJSON(prompt, systemInstruction) {
   if (!apiKey) throw new Error("Gemini API key not configured in environment");
   
   const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const candidateModels = [primaryModel, 'gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-1.5-flash'].filter((v, i, a) => a.indexOf(v) === i);
+  const candidateModels = [primaryModel, 'gemini-1.5-flash', 'gemini-1.5-pro'].filter((v, i, a) => a.indexOf(v) === i);
   
   let lastError = null;
   
@@ -80,21 +81,25 @@ export async function generateContentJSON(prompt, systemInstruction) {
     } catch (err) {
       lastError = err;
       console.warn(`[Gemini ${modelName}] Notice: ${err.message}`);
-      if (err.status === 429 || err.message?.includes('429') || err.message?.includes('quota')) {
-        continue;
-      }
-      throw err;
+      // Continue to next model or Groq fallback on ANY error (404, 500, 429)
+      continue;
     }
   }
   
-  throw lastError;
+  console.warn("All Gemini models failed or quota exceeded. Falling back to Groq AI!");
+  try {
+    return await groqFallbackGenerateJSON(prompt, systemInstruction);
+  } catch (groqErr) {
+    console.warn("Groq fallback also failed:", groqErr.message);
+    throw new Error(`[All APIs Failed] Gemini Error: ${lastError?.message || 'N/A'} | Groq Error: ${groqErr.message}`);
+  }
 }
 
 export async function getTrendingPsychologyTopics() {
   if (!apiKey) apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("Gemini API key not configured");
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
   
   const payload = {
     contents: [

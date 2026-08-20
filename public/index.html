@@ -67,17 +67,16 @@
         }
 
         .progress-log-console {
-            font-family: 'ui-monospace', 'SFMono-Regular', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            font-size: 0.8125rem;
-            color: #34d399;
-            background-color: #0f172a;
-            padding: 1.125rem;
+            font-size: 0.875rem;
+            color: #4c1d95;
+            background-color: #f5f3ff;
+            padding: 1.25rem;
             border-radius: 1rem;
             height: 210px;
             overflow-y: auto;
-            white-space: pre-wrap;
             line-height: 1.6;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            font-weight: 500;
         }
 
         /* TikTok Reels Snap Scroll Style */
@@ -262,11 +261,15 @@
                                     <div>
                                         <select id="count-select" class="w-full bg-purple-50 border border-purple-200 text-gray-900 text-xs font-bold rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-purple-400">
                                             <option value="1">1 Post</option>
+                                            <option value="2">2 Posts</option>
                                             <option value="3">3 Posts</option>
+                                            <option value="4">4 Posts</option>
                                             <option value="5" selected>5 Posts</option>
+                                            <option value="6">6 Posts</option>
+                                            <option value="7">7 Posts</option>
+                                            <option value="8">8 Posts</option>
+                                            <option value="9">9 Posts</option>
                                             <option value="10">10 Posts</option>
-                                            <option value="15">15 Posts</option>
-                                            <option value="20">20 Posts</option>
                                         </select>
                                         <p class="text-[10px] font-medium text-gray-500 mt-1.5">Target Quantity</p>
                                     </div>
@@ -280,13 +283,7 @@
                                         </div>
                                     </div>
                                     <div>
-                                        <select id="schedule-select" class="w-full bg-purple-50 border border-purple-200 text-gray-900 text-xs font-bold rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-purple-400">
-                                            <option value="off" selected>Manual (Off)</option>
-                                            <option value="1h">Every 1 Hour</option>
-                                            <option value="6h">Every 6 Hours</option>
-                                            <option value="12h">Every 12 Hours</option>
-                                            <option value="24h">Every 24 Hours</option>
-                                        </select>
+                                        <input type="text" id="schedule-time" placeholder="e.g. 09:00, 15:30" class="w-full bg-purple-50 border border-purple-200 text-gray-900 text-xs font-bold rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-purple-400">
                                         <p class="text-[10px] font-medium text-gray-500 mt-1.5">Recurring Runner</p>
                                     </div>
                                 </div>
@@ -344,10 +341,10 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <span class="absolute -top-6 left-1/2 transform -translate-x-1/2 text-[10px] text-gray-400 font-bold">20</span>
+                                    <span class="absolute -top-6 left-1/2 transform -translate-x-1/2 text-[10px] text-gray-400 font-bold">10</span>
                                     <span class="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-[10px] text-gray-400 font-bold">1</span>
                                     <span class="absolute top-1/2 -left-7 transform -translate-y-1/2 text-[10px] text-gray-400 font-bold">3</span>
-                                    <span class="absolute top-1/2 -right-7 transform -translate-y-1/2 text-[10px] text-gray-400 font-bold">15</span>
+                                    <span class="absolute top-1/2 -right-7 transform -translate-y-1/2 text-[10px] text-gray-400 font-bold">8</span>
                                 </div>
 
                                 <button id="dial-plus" class="w-11 h-11 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center transition font-bold shadow-md active:scale-95">
@@ -365,7 +362,7 @@
                         <div id="progress-container" class="bg-white rounded-2xl p-6 card-shadow border border-purple-100/60">
                             <div class="flex justify-between items-center mb-3">
                                 <h3 class="text-xs font-extrabold text-gray-800 uppercase tracking-wider flex items-center">
-                                    <i class="fas fa-terminal text-purple-600 mr-2 text-xs"></i> Studio Production Console Log
+                                    <i class="fas fa-info-circle text-purple-600 mr-2 text-xs"></i> Live Progress Information
                                 </h3>
                                 <span class="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">Live Stream</span>
                             </div>
@@ -636,11 +633,12 @@
                         </div>
                     </div>
                     
-                    <div class="pt-3 border-t border-gray-100 flex space-x-2">
-                        <button id="btn-approve" onclick="approveCurrentPost()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3 rounded-xl transition">👍 APPROVE</button>
-                        <button id="btn-reject" onclick="rejectCurrentPost()" class="bg-red-500 hover:bg-red-600 text-white font-bold text-xs px-4 py-3 rounded-xl transition">👎 REJECT</button>
-                        <a id="modal-download" download href="#" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs py-3 rounded-xl text-center shadow transition flex items-center justify-center space-x-1">
-                            <i class="fas fa-download text-xs"></i>
+                    <div class="pt-3 border-t border-gray-100 flex flex-wrap gap-2">
+                        <button id="btn-approve" onclick="approveCurrentPost()" class="flex-1 min-w-[100px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] sm:text-xs py-3 rounded-xl transition">👍 APPROVE</button>
+                        <button id="btn-reject" onclick="rejectCurrentPost()" class="flex-1 min-w-[100px] bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] sm:text-xs py-3 rounded-xl transition">👎 REJECT</button>
+                        <button id="btn-delete" onclick="deleteCurrentPost()" class="flex-1 min-w-[100px] bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] sm:text-xs py-3 rounded-xl transition"><i class="fas fa-trash-alt mr-1"></i> DELETE</button>
+                        <a id="modal-download" download href="#" class="flex-1 min-w-[100px] bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-[10px] sm:text-xs py-3 rounded-xl text-center shadow transition flex items-center justify-center space-x-1">
+                            <i class="fas fa-download text-[10px]"></i>
                             <span>PNG</span>
                         </a>
                     </div>

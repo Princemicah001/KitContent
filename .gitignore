@@ -1,8 +1,2 @@
 node_modules/
 .env
-data/*.db
-!data/.gitkeep
-generated/images/*
-!generated/images/.gitkeep
-generated/posts/*
-!generated/posts/.gitkeep

@@ -27,11 +27,11 @@ IMAGE PROMPT REQUIREMENT:
 - Do NOT restrict images to antique, vintage, or 35mm film styles unless specifically relevant.
 - Always end the image_prompt with: "high resolution, vertical 9:16 composition, rich lighting, artistic depth, no text."
 
-LENGTH RULES:
-- hook: 10-20 words
-- body: 25-55 words
-- takeaway: 10-25 words
-- caption: 20-60 words
+LENGTH RULES (STRICT MAXIMUMS - DO NOT EXCEED TO PREVENT UI OVERFLOW):
+- hook: 5-12 words max
+- body: 15-30 words max
+- takeaway: 8-15 words max
+- caption: 15-40 words
 
 JSON FORMAT EXACTLY:
 {
@@ -87,12 +87,15 @@ export async function checkUniqueness(candidate) {
       };
     }
 
-    const topicSim = calculateSimilarity(candidate.topic, post.topic);
-    if (topicSim > 0.25) {
+    const candFiltered = candidate.topic.toLowerCase().replace(/\b(the|a|an|effect|bias|phenomenon|rule|syndrome|law|theory|principle)\b/g, '');
+    const existFiltered = post.topic.toLowerCase().replace(/\b(the|a|an|effect|bias|phenomenon|rule|syndrome|law|theory|principle)\b/g, '');
+    
+    const topicSim = calculateSimilarity(candFiltered, existFiltered);
+    if (topicSim > 0.55) {
       return {
         isUnique: false,
         similarityScore: topicSim,
-        reason: `Topic '${candidate.topic}' is too similar to '${post.topic}' (${(topicSim * 100).toFixed(0)}% match)`
+        reason: `Topic '${candidate.topic}' is conceptually too similar to '${post.topic}' (${(topicSim * 100).toFixed(0)}% match)`
       };
     }
     
@@ -103,7 +106,7 @@ export async function checkUniqueness(candidate) {
     }
   }
   
-  const threshold = 0.30;
+  const threshold = 0.45;
   
   return {
     isUnique: maxSimilarity < threshold,
@@ -116,10 +119,10 @@ export async function scoreQuality(candidate) {
   let score = 100;
   
   const hookWords = candidate.hook.split(' ').length;
-  if (hookWords < 5 || hookWords > 25) score -= 10;
+  if (hookWords > 15) score -= 10;
   
   const bodyWords = candidate.body.split(' ').length;
-  if (bodyWords < 15 || bodyWords > 65) score -= 10;
+  if (bodyWords > 35) score -= 10;
   
   const lowerHook = candidate.hook.toLowerCase();
   if (lowerHook.includes("psychology says") || lowerHook.includes("did you know")) {
@@ -179,10 +182,10 @@ Return ONLY a JSON object with EXACTLY these keys:
 {
   "category": "Psychology",
   "topic": "${targetTopic || 'Unique Topic Name'}",
-  "hook": "10-20 word hook sentence",
-  "body": "25-55 word informative text explaining the concept",
-  "takeaway": "10-25 word actionable or reflective takeaway",
-  "caption": "20-60 word caption for social media",
+  "hook": "5-12 word short punchy hook sentence",
+  "body": "15-30 word extremely concise informative text explaining the concept",
+  "takeaway": "8-15 word short actionable or reflective takeaway",
+  "caption": "15-40 word caption for social media",
   "hashtags": ["#psychology", "#humanbehavior", "#selfawareness"],
   "image_prompt": "Descriptive visual scene matching the emotion (can be bright, dark cinematic, illustrative, photorealistic, minimalist depending on mood)... vertical 9:16 composition, high resolution, no text."
 }`;
@@ -227,10 +230,10 @@ Return ONLY a JSON object with updated keys:
 {
   "category": "${post.category || 'Psychology'}",
   "topic": "${post.topic}",
-  "hook": "Refined 10-20 word hook",
-  "body": "Refined 25-55 word body",
-  "takeaway": "Refined 10-25 word takeaway",
-  "caption": "Refined 20-60 word caption",
+  "hook": "Refined 5-12 word hook",
+  "body": "Refined 15-30 word body",
+  "takeaway": "Refined 8-15 word takeaway",
+  "caption": "Refined 15-40 word caption",
   "hashtags": ${JSON.stringify(post.hashtags || ["#psychology", "#humanbehavior"])},
   "image_prompt": "${post.image_prompt || 'Vertical 9:16 background image prompt'}"
 }`;

@@ -27,7 +27,11 @@ export async function validateGeneratedImage(filePath) {
 
 export async function validateFinalPostPNG(filePath) {
   try {
-    const stats = await fs.stat(filePath);
+    const baseDir = process.env.VERCEL ? '/tmp' : process.cwd();
+    // In ES modules, we should use the imported path module.
+    // wait, path is not imported in this file. Let's just do manual join if needed, or import path at top.
+    const absolutePath = filePath.startsWith('/') ? filePath : `${baseDir}/${filePath}`;
+    const stats = await fs.stat(absolutePath);
     if (stats.size < 5000) {
       throw new Error("Final PNG post file is invalid or too small");
     }

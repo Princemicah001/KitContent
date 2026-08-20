@@ -103,6 +103,18 @@ app.get('/api/posts/:id', async (req, res) => {
   }
 });
 
+app.delete('/api/posts/:id', async (req, res) => {
+  try {
+    const { deletePost } = await import('./database.js');
+    const success = await deletePost(req.params.id);
+    if (!success) return res.status(404).json({ error: "Post not found or could not be deleted" });
+    await logMetric('post_deleted', req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/posts/:id/approve', async (req, res) => {
   try {
     const post = await getPost(req.params.id);
@@ -252,15 +264,7 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null) {
       let uniqueInfo = null;
       let qualityScore = 0;
       let poolItem = null;
-
-      if (!seedTopic) {
-        const currentPool = await getUnconsumedTopicPool();
-        if (currentPool.length > 0) {
-          poolItem = currentPool[0];
-        }
-      }
-      
-      const targetTopicName = seedTopic || (poolItem ? poolItem.topic : null);
+      let targetTopicName = seedTopic;
 
       const post = {
         id: uuidv4(),
@@ -272,6 +276,18 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null) {
       
       while (attempts < 10) {
         attempts++;
+        
+        if (!seedTopic && !poolItem) {
+          const currentPool = await getUnconsumedTopicPool();
+          if (currentPool.length > 0) {
+            poolItem = currentPool[0];
+            targetTopicName = poolItem.topic;
+          } else {
+            await ensureTopicPoolFilled(5);
+            continue;
+          }
+        }
+        
         addLog(`🧠 Post ${postNumber}/${targetCount} [Attempt ${attempts}/10]: Generating content for "${targetTopicName || 'Unique Topic'}"...`);
         
         try {
@@ -285,6 +301,13 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null) {
           if (!uniqueInfo.isUnique) {
             addLog(`❌ Post ${postNumber}/${targetCount} Rejected: ${uniqueInfo.reason || 'Duplicate topic/content'}`);
             await logMetric('repetition_blocked', { topic: candidate.topic, reason: uniqueInfo.reason });
+            
+            if (!seedTopic && poolItem) {
+               await consumeTopicFromPool(poolItem.id);
+               poolItem = null;
+               targetTopicName = null;
+            }
+            
             await new Promise(resolve => setTimeout(resolve, 1500));
             continue;
           }
@@ -313,7 +336,8 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null) {
           addLog(`⚠️ Candidate generation notice: ${err.message}`);
           await logMetric('api_error', { message: err.message });
           
-          if (err.message?.includes('429') || err.message?.includes('quota') || err.message?.includes('rate')) {
+          const msgLower = (err.message || '').toLowerCase();
+          if (msgLower.includes(' 429 ') || msgLower.includes('quota') || msgLower.includes('rate limit')) {
             await logMetric('api_429', { message: err.message });
             let waitSeconds = 15;
             const match = err.message.match(/retry in ([0-9.]+)s/i) || err.message.match(/retryDelay"?:\s*"([0-9]+)s?"/i);
@@ -323,7 +347,8 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null) {
             addLog(`⏳ Quota limit hit. Intelligently pausing pipeline for ${waitSeconds}s as requested by API...`);
             await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000));
           } else {
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            addLog(`💥 Fatal API error: ${err.message}. Aborting retries for this attempt.`);
+            break;
           }
           if (attempts === 10) throw err;
         }

@@ -106,6 +106,22 @@ export async function queryGroq(messages, jsonMode = false) {
   return data.choices[0]?.message?.content || '';
 }
 
+export async function groqFallbackGenerateJSON(prompt, systemInstruction) {
+  const messages = [];
+  if (systemInstruction) {
+    messages.push({ role: "system", content: systemInstruction });
+  }
+  messages.push({ role: "user", content: prompt });
+  
+  try {
+    const raw = await queryGroq(messages, true);
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error("Groq fallback JSON generation error:", err);
+    throw err;
+  }
+}
+
 export async function groqAuditCandidate(candidate, existingTopics = []) {
   const prompt = `You are Groq Supervisor, the master quality controller for KitContent Studio.
 Audit this generated psychology post candidate before final approval:

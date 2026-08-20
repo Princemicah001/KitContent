@@ -24,55 +24,81 @@ export async function composePost(post, bgImagePath) {
 
   // Typography Settings
   ctx.textAlign = 'center';
+  ctx.textBaseline = 'top'; // This makes vertical positioning predictable
   ctx.fillStyle = '#FFFFFF';
   
   const margin = 120;
   const maxWidth = width - (margin * 2);
 
-  let currentY = 500;
+  // 1. PRE-CALCULATE TEXT HEIGHT TO CENTRALLY PLACE IT
+  
+  ctx.font = 'bold 72px cursive';
+  const hookLines = wrapText(ctx, post.hook, maxWidth);
+  const hookBlockHeight = hookLines.length * 80;
 
+  ctx.font = '40px sans-serif';
+  const bodyLines = wrapText(ctx, post.body, maxWidth);
+  const bodyBlockHeight = bodyLines.length * 50;
+
+  ctx.font = 'italic 44px sans-serif';
+  const takeawayLines = wrapText(ctx, post.takeaway, maxWidth);
+  const takeawayBlockHeight = takeawayLines.length * 55;
+
+  let totalHeight = hookBlockHeight + bodyBlockHeight + takeawayBlockHeight;
+  
+  const categoryHeight = post.category ? 60 : 0;
+  totalHeight += categoryHeight;
+  
+  // Add spacing gaps between elements
+  const gapAfterHook = 50;
+  const gapAfterBody = 50;
+  totalHeight += gapAfterHook + gapAfterBody;
+
+  // Calculate balanced starting Y position for perfect vertical center
+  // Subtracting the total height from the canvas height and dividing by 2 guarantees equal top and bottom margins!
+  let currentY = (height - totalHeight) / 2;
+
+  // 2. RENDER THE TEXT
+  
   // Category
   if (post.category) {
-    ctx.font = 'bold 32px sans-serif';
+    ctx.font = 'bold 28px sans-serif';
     ctx.fillStyle = '#AAAAAA';
     ctx.fillText(post.category.toUpperCase(), width / 2, currentY);
-    currentY += 80;
+    currentY += categoryHeight;
   }
 
-  // Hook (Dominant)
+  // Hook (Heading)
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 72px sans-serif';
-  const hookLines = wrapText(ctx, post.hook, maxWidth);
+  ctx.font = 'bold 72px cursive';
   for (let line of hookLines) {
     ctx.fillText(line, width / 2, currentY);
-    currentY += 85;
+    currentY += 80;
   }
   
-  currentY += 60;
+  currentY += gapAfterHook;
 
   // Body (Secondary)
   ctx.fillStyle = '#DDDDDD';
   ctx.font = '40px sans-serif';
-  const bodyLines = wrapText(ctx, post.body, maxWidth);
   for (let line of bodyLines) {
     ctx.fillText(line, width / 2, currentY);
-    currentY += 55;
+    currentY += 50;
   }
 
-  currentY += 80;
+  currentY += gapAfterBody;
 
   // Takeaway (Closing)
   ctx.fillStyle = '#FFFFFF';
   ctx.font = 'italic 44px sans-serif';
-  const takeawayLines = wrapText(ctx, post.takeaway, maxWidth);
   for (let line of takeawayLines) {
     ctx.fillText(line, width / 2, currentY);
-    currentY += 60;
+    currentY += 55;
   }
 
   // Branding at bottom
   ctx.fillStyle = '#888888';
-  ctx.font = '24px sans-serif';
+  ctx.font = '22px sans-serif';
   ctx.fillText('KITCONTENT', width / 2, height - 80);
 
   const filename = `post_${post.id}.png`;
@@ -89,6 +115,7 @@ export async function composePost(post, bgImagePath) {
 }
 
 function wrapText(ctx, text, maxWidth) {
+  if (!text) return [''];
   const words = text.split(' ');
   const lines = [];
   let currentLine = words[0];

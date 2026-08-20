@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchSchedule();
 
     document.getElementById('generate-btn').addEventListener('click', generatePosts);
-    document.getElementById('schedule-select').addEventListener('change', updateSchedule);
+    document.getElementById('schedule-time').addEventListener('change', updateSchedule);
     document.getElementById('count-select').addEventListener('change', syncDialWithSelect);
     document.getElementById('close-modal').addEventListener('click', closeModal);
     
@@ -70,11 +70,11 @@ function showPage(pageId) {
 
 function adjustDial(delta) {
     const select = document.getElementById('count-select');
-    const options = [1, 3, 5, 10, 15, 20];
+    const options = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     let current = parseInt(select.value, 10) || 5;
     
     let currentIndex = options.indexOf(current);
-    if (currentIndex === -1) currentIndex = 2;
+    if (currentIndex === -1) currentIndex = 4;
     
     let newIndex = Math.max(0, Math.min(options.length - 1, currentIndex + delta));
     select.value = options[newIndex];
@@ -165,13 +165,25 @@ async function fetchStats() {
 
 async function fetchGroqInsights() {
     const summaryBox = document.getElementById('groq-human-summary');
-    if (!summaryBox) return;
     try {
         const res = await fetch('/api/groq/insights');
         const data = await res.json();
-        summaryBox.innerHTML = `<strong>Health Status: ${data.system_health || 'OPTIMAL'}</strong><br>${data.human_summary || 'System running cleanly.'}<br><em class="text-purple-300">Recommendation: ${data.recommendation || 'No action needed.'}</em>`;
+        
+        if (summaryBox) {
+            summaryBox.innerHTML = `<strong>Health Status: ${data.system_health || 'OPTIMAL'}</strong><br>${data.human_summary || 'System running cleanly.'}<br><em class="text-purple-300">Recommendation: ${data.recommendation || 'No action needed.'}</em>`;
+        }
+        
+        if (data.system_health === 'CRITICAL' || data.system_health === 'ERROR' || (data.human_summary && data.human_summary.toLowerCase().includes('failed'))) {
+            const errorMsg = `Groq Alert!\nHealth: ${data.system_health}\n${data.human_summary}\n\nRecommendation: ${data.recommendation}`;
+            console.error(errorMsg);
+            // Show alert only if we haven't shown it recently to avoid spam
+            if (!window.lastAlertTime || (Date.now() - window.lastAlertTime > 60000)) {
+                alert(errorMsg);
+                window.lastAlertTime = Date.now();
+            }
+        }
     } catch (err) {
-        summaryBox.textContent = "Groq insights unavailable.";
+        if (summaryBox) summaryBox.textContent = "Groq insights unavailable.";
     }
 }
 
@@ -180,30 +192,31 @@ async function fetchSchedule() {
         const res = await fetch('/api/schedule');
         const data = await res.json();
         
-        const select = document.getElementById('schedule-select');
-        select.value = data.interval || 'off';
+        const input = document.getElementById('schedule-time');
+        if (input) input.value = data.time || '';
         
         const scheduleStat = document.getElementById('stat-schedule');
-        scheduleStat.textContent = (data.interval && data.interval !== 'off') ? data.interval.toUpperCase() : 'OFF';
+        if (scheduleStat) scheduleStat.textContent = data.time ? data.time : 'OFF';
     } catch (err) {
         console.error(err);
     }
 }
 
 async function updateSchedule() {
-    const interval = document.getElementById('schedule-select').value;
+    const timeInput = document.getElementById('schedule-time');
+    const time = timeInput ? timeInput.value : '';
     const count = parseInt(document.getElementById('count-select').value, 10);
     
     try {
         const res = await fetch('/api/schedule', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ interval, count })
+            body: JSON.stringify({ time, count })
         });
         const data = await res.json();
         
         const scheduleStat = document.getElementById('stat-schedule');
-        scheduleStat.textContent = (data.interval && data.interval !== 'off') ? data.interval.toUpperCase() : 'OFF';
+        if (scheduleStat) scheduleStat.textContent = data.time ? data.time : 'OFF';
     } catch (err) {
         console.error("Schedule update error:", err);
     }
@@ -229,8 +242,26 @@ async function pollProgress() {
         }
         
         if (data.logs && data.logs.length > 0) {
-            logBox.innerHTML = data.logs.map(log => `<div>${escapeHtml(log)}</div>`).join('');
-            logBox.scrollTop = logBox.scrollHeight;
+            if (logBox) {
+                logBox.innerHTML = data.logs.map(log => {
+                    let color = '#6d28d9'; // default purple
+                    if (log.toLowerCase().includes('failed') || log.toLowerCase().includes('error') || log.toLowerCase().includes('rejected')) color = '#e11d48'; // red
+                    else if (log.toLowerCase().includes('success') || log.toLowerCase().includes('completed') || log.toLowerCase().includes('approved')) color = '#059669'; // green
+                    
+                    return `<div style="margin-bottom:6px; color:${color}; padding-left:4px; border-left: 2px solid ${color}40;">${escapeHtml(log)}</div>`;
+                }).join('');
+                logBox.scrollTop = logBox.scrollHeight;
+            }
+            
+            // Check for new failures in the last 3 logs
+            const recentLogs = data.logs.slice(-3);
+            const hasError = recentLogs.some(log => log.toLowerCase().includes('failed') || log.toLowerCase().includes('error'));
+            if (hasError) {
+                if (!window.lastErrorFetch || (Date.now() - window.lastErrorFetch > 30000)) {
+                    window.lastErrorFetch = Date.now();
+                    fetchGroqInsights();
+                }
+            }
         }
     } catch (err) {
         console.error("Progress polling error:", err);
@@ -273,47 +304,55 @@ function filterPosts(query) {
 function renderPostsGrid(posts) {
     const grid = document.getElementById('posts-grid');
     if (!grid) return;
-    grid.innerHTML = '';
     
     if (posts.length === 0) {
         grid.innerHTML = '<div class="col-span-2 text-center py-8 text-gray-400 text-xs font-medium">No posts generated yet. Click START GENERATION BATCH above!</div>';
         return;
     }
     
+    const currentPostIds = new Set(posts.map(p => p.id));
+    // Remove old items
+    Array.from(grid.children).forEach(child => {
+        if (child.dataset.id && !currentPostIds.has(child.dataset.id)) {
+            grid.removeChild(child);
+        }
+    });
+
     posts.forEach(post => {
-        const card = document.createElement('div');
-        card.className = 'bg-white p-2.5 rounded-2xl card-shadow border border-purple-100/60 flex flex-col justify-between hover:border-purple-300 transition duration-200 cursor-pointer group';
-        card.onclick = () => openModal(post);
+        let card = grid.querySelector(`[data-id="${post.id}"]`);
         
-        const imgWrapper = document.createElement('div');
-        imgWrapper.className = 'relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-gray-950 mb-2 shadow-sm';
+        if (!card) {
+            card = document.createElement('div');
+            card.dataset.id = post.id;
+            card.className = 'bg-white p-2.5 rounded-2xl card-shadow border border-purple-100/60 flex flex-col justify-between hover:border-purple-300 transition duration-200 cursor-pointer group';
+            card.onclick = () => openModal(post);
+            grid.appendChild(card);
+        } else {
+            // Update onclick reference
+            card.onclick = () => openModal(post);
+        }
         
-        const img = document.createElement('img');
-        img.className = 'w-full h-full object-cover group-hover:scale-105 transition duration-300';
-        img.src = post.final_image_path ? `/${post.final_image_path}` : 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%221080%22%20height%3D%221920%22%20viewBox%3D%220%200%201080%201920%22%3E%3Crect%20fill%3D%22%23242424%22%20width%3D%221080%22%20height%3D%221920%22%2F%3E%3Ctext%20fill%3D%22%23888%22%20font-family%3D%22sans-serif%22%20font-size%3D%2260%22%20dy%3D%2221%22%20x%3D%2250%25%22%20y%3D%2250%25%22%20text-anchor%3D%22middle%22%3E' + encodeURIComponent(post.status) + '%3C%2Ftext%3E%3C%2Fsvg%3E';
-        imgWrapper.appendChild(img);
+        const statusClass = post.status === 'READY' ? 'bg-emerald-500 text-white' : post.status === 'APPROVED' ? 'bg-purple-600 text-white' : 'bg-amber-500 text-white';
+        const imgSrc = post.final_image_path ? `/${post.final_image_path}` : 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%221080%22%20height%3D%221920%22%20viewBox%3D%220%200%201080%201920%22%3E%3Crect%20fill%3D%22%23242424%22%20width%3D%221080%22%20height%3D%221920%22%2F%3E%3Ctext%20fill%3D%22%23888%22%20font-family%3D%22sans-serif%22%20font-size%3D%2260%22%20dy%3D%2221%22%20x%3D%2250%25%22%20y%3D%2250%25%22%20text-anchor%3D%22middle%22%3E' + encodeURIComponent(post.status) + '%3C%2Ftext%3E%3C%2Fsvg%3E';
         
-        const statusBadge = document.createElement('span');
-        statusBadge.className = `absolute top-2 left-2 text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow-sm ${post.status === 'READY' ? 'bg-emerald-500 text-white' : post.status === 'APPROVED' ? 'bg-purple-600 text-white' : 'bg-amber-500 text-white'}`;
-        statusBadge.textContent = post.status;
-        imgWrapper.appendChild(statusBadge);
+        const html = `
+            <div class="relative w-full aspect-[9/16] rounded-xl overflow-hidden bg-gray-950 mb-2 shadow-sm">
+                <img class="w-full h-full object-cover group-hover:scale-105 transition duration-300" src="${imgSrc}">
+                <span class="absolute top-2 left-2 text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow-sm ${statusClass}">${post.status}</span>
+            </div>
+            <div class="space-y-1">
+                <div class="text-xs font-bold text-gray-900 truncate">${escapeHtml(post.topic || 'Generating...')}</div>
+                <div class="flex justify-between items-center text-[10px] text-gray-400 font-medium">
+                    <span>${escapeHtml(post.category || 'Psychology')}</span>
+                    <span class="font-extrabold text-purple-600">${post.quality_score ? post.quality_score + '/100' : ''}</span>
+                </div>
+            </div>
+        `;
         
-        const info = document.createElement('div');
-        info.className = 'space-y-1';
-        
-        const title = document.createElement('div');
-        title.className = 'text-xs font-bold text-gray-900 truncate';
-        title.textContent = post.topic || 'Generating...';
-        
-        const meta = document.createElement('div');
-        meta.className = 'flex justify-between items-center text-[10px] text-gray-400 font-medium';
-        meta.innerHTML = `<span>${post.category || 'Psychology'}</span> <span class="font-extrabold text-purple-600">${post.quality_score ? post.quality_score + '/100' : ''}</span>`;
-        
-        info.appendChild(title);
-        info.appendChild(meta);
-        card.appendChild(imgWrapper);
-        card.appendChild(info);
-        grid.appendChild(card);
+        // Update DOM only if changed to avoid unnecessary repaints
+        if (card.innerHTML !== html) {
+            card.innerHTML = html;
+        }
     });
 }
 
@@ -551,6 +590,20 @@ async function rejectCurrentPost() {
     if (!currentPostInModal) return;
     try {
         await fetch(`/api/posts/${currentPostInModal.id}/reject`, { method: 'POST' });
+        closeModal();
+        fetchPosts();
+        fetchStats();
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function deleteCurrentPost() {
+    if (!currentPostInModal) return;
+    if (!confirm('Are you sure you want to completely delete this post? This cannot be undone.')) return;
+    
+    try {
+        await fetch(`/api/posts/${currentPostInModal.id}`, { method: 'DELETE' });
         closeModal();
         fetchPosts();
         fetchStats();

@@ -143,6 +143,17 @@ export async function getPosts() {
   }));
 }
 
+export async function deletePost(id) {
+  if (!db) return false;
+  try {
+    const result = await db.run('DELETE FROM posts WHERE id = ?', [id]);
+    return result && result.changes > 0;
+  } catch (err) {
+    console.error('Error deleting post:', err);
+    return false;
+  }
+}
+
 export async function getPost(id) {
   const post = await db.get('SELECT * FROM posts WHERE id = ?', [id]);
   if (post) {
