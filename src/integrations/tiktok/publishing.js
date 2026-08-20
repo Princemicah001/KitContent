@@ -3,7 +3,7 @@ import { getValidAccessToken } from './tokens.js';
 import { getCreatorInfo } from './creator.js';
 import { savePost } from '../../database.js';
 
-export async function publishPhotoToTikTok(post, privacyLevel, disableComment, autoAddMusic) {
+export async function publishPhotoToTikTok(post, privacyLevel, disableComment, autoAddMusic, dynamicBaseUrl) {
   const accessToken = await getValidAccessToken();
   if (!accessToken) throw new Error("Not connected to TikTok");
 
@@ -14,7 +14,7 @@ export async function publishPhotoToTikTok(post, privacyLevel, disableComment, a
 
   // Generate public URL (assumes the server is accessible on the internet)
   // Vercel deployment handles this, local might need ngrok, but we assume KitContent domain for prod
-  const baseUrl = process.env.PUBLIC_URL || 'https://kitcontent.lexshub.xyz';
+  const baseUrl = dynamicBaseUrl || process.env.PUBLIC_URL || 'https://kitcontent.lexshub.xyz';
   let imageUrl = `${baseUrl}/${post.final_image_path}`;
   if (!imageUrl.startsWith('http')) imageUrl = `https://${imageUrl}`;
 

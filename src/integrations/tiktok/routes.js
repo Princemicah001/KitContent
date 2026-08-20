@@ -85,7 +85,13 @@ tiktokRouter.post('/publish/:postId', async (req, res) => {
 
     const { privacy_level = "SELF_ONLY", disable_comment = false, auto_add_music = true } = req.body;
     
-    const result = await publishPhotoToTikTok(post, privacy_level, disable_comment, auto_add_music);
+    let protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    if (protocol.includes(',')) protocol = protocol.split(',')[0].trim();
+    if (req.get('host').includes('onrender.com')) protocol = 'https';
+    const host = req.get('host');
+    const dynamicBaseUrl = `${protocol}://${host}`;
+    
+    const result = await publishPhotoToTikTok(post, privacy_level, disable_comment, auto_add_music, dynamicBaseUrl);
     res.json({ success: true, publish_id: result.publish_id });
   } catch (err) {
     res.status(500).json({ error: err.message });
