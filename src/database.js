@@ -51,7 +51,30 @@ export async function initDb() {
       status TEXT DEFAULT 'UNCONSUMED',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS tiktok_account (
+      id INTEGER PRIMARY KEY CHECK (id = 1), -- Single-user design for now
+      open_id TEXT,
+      access_token TEXT,
+      refresh_token TEXT,
+      expires_at INTEGER,
+      scope TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
+
+  // Add TikTok columns to posts if they don't exist
+  try {
+    const columns = await db.all("PRAGMA table_info(posts)");
+    const colNames = columns.map(c => c.name);
+    if (!colNames.includes('tiktok_publish_id')) await db.exec("ALTER TABLE posts ADD COLUMN tiktok_publish_id TEXT;");
+    if (!colNames.includes('tiktok_status')) await db.exec("ALTER TABLE posts ADD COLUMN tiktok_status TEXT;");
+    if (!colNames.includes('tiktok_published_at')) await db.exec("ALTER TABLE posts ADD COLUMN tiktok_published_at DATETIME;");
+    if (!colNames.includes('tiktok_error')) await db.exec("ALTER TABLE posts ADD COLUMN tiktok_error TEXT;");
+  } catch (e) {
+    console.error("Migration error:", e);
+  }
   
   return db;
 }
@@ -98,8 +121,8 @@ export async function consumeTopicFromPool(topicId) {
 
 export async function savePost(post) {
   const query = `
-    INSERT INTO posts (id, category, topic, hook, body, takeaway, caption, hashtags, image_prompt, image_path, final_image_path, status, similarity_score, quality_score, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    INSERT INTO posts (id, category, topic, hook, body, takeaway, caption, hashtags, image_prompt, image_path, final_image_path, status, similarity_score, quality_score, updated_at, tiktok_publish_id, tiktok_status, tiktok_published_at, tiktok_error)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       category=excluded.category,
       topic=excluded.topic,
@@ -114,6 +137,10 @@ export async function savePost(post) {
       status=excluded.status,
       similarity_score=excluded.similarity_score,
       quality_score=excluded.quality_score,
+      tiktok_publish_id=excluded.tiktok_publish_id,
+      tiktok_status=excluded.tiktok_status,
+      tiktok_published_at=excluded.tiktok_published_at,
+      tiktok_error=excluded.tiktok_error,
       updated_at=CURRENT_TIMESTAMP
   `;
   
@@ -131,7 +158,11 @@ export async function savePost(post) {
     post.final_image_path,
     post.status,
     post.similarity_score,
-    post.quality_score
+    post.quality_score,
+    post.tiktok_publish_id || null,
+    post.tiktok_status || null,
+    post.tiktok_published_at || null,
+    post.tiktok_error || null
   ]);
 }
 
@@ -207,4 +238,30 @@ export async function getStats() {
     avg_quality: stats.avg_quality ? parseFloat(stats.avg_quality.toFixed(1)) : 95.0,
     authenticity_score: parseFloat(authenticityScore)
   };
+}
+
+export async function getTikTokAccount() {
+  if (!db) return null;
+  return await db.get('SELECT * FROM tiktok_account WHERE id = 1');
+}
+
+export async function saveTikTokAccount(account) {
+  if (!db) return;
+  const query = `
+    INSERT INTO tiktok_account (id, open_id, access_token, refresh_token, expires_at, scope, updated_at)
+    VALUES (1, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(id) DO UPDATE SET
+      open_id=excluded.open_id,
+      access_token=excluded.access_token,
+      refresh_token=excluded.refresh_token,
+      expires_at=excluded.expires_at,
+      scope=excluded.scope,
+      updated_at=CURRENT_TIMESTAMP
+  `;
+  await db.run(query, [account.open_id, account.access_token, account.refresh_token, account.expires_at, account.scope]);
+}
+
+export async function deleteTikTokAccount() {
+  if (!db) return;
+  await db.run('DELETE FROM tiktok_account WHERE id = 1');
 }

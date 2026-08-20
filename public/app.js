@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchPosts();
     fetchSchedule();
     syncDialWithSelect();
+    checkTikTokStatus();
 
     document.getElementById('generate-btn').addEventListener('click', generatePosts);
     document.getElementById('schedule-time').addEventListener('change', updateSchedule);
@@ -637,5 +638,133 @@ async function triggerRefinePost() {
     } finally {
         btn.textContent = 'Refine';
         btn.disabled = false;
+    }
+}
+
+// TikTok Integration Logic
+let tiktokConnected = false;
+
+async function checkTikTokStatus() {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tiktok_error')) {
+            alert("TikTok Error: " + urlParams.get('tiktok_error'));
+            window.history.replaceState({}, document.title, "/");
+        }
+        
+        const res = await fetch('/api/tiktok/status');
+        const data = await res.json();
+        
+        tiktokConnected = data.connected;
+        const btn = document.getElementById('btn-tiktok-init');
+        if (btn) btn.classList.toggle('hidden', !tiktokConnected);
+        
+        document.getElementById('tiktok-status-badge').textContent = tiktokConnected ? 'ACTIVE' : 'OFFLINE';
+        
+        if (tiktokConnected && !data.error) {
+            document.getElementById('tiktok-disconnected-view').classList.add('hidden');
+            document.getElementById('tiktok-connected-view').classList.remove('hidden');
+            document.getElementById('tiktok-creator-name').textContent = "@" + (data.creator || 'creator');
+            
+            // Populate privacy options based on creator info
+            const privacySelect = document.getElementById('tiktok-privacy-select');
+            if (privacySelect && data.privacy_options && data.privacy_options.length > 0) {
+                privacySelect.innerHTML = '';
+                const labels = {
+                    'PUBLIC_TO_EVERYONE': 'Public',
+                    'MUTUAL_FOLLOW_FRIENDS': 'Friends',
+                    'SELF_ONLY': 'Private (Only me)'
+                };
+                data.privacy_options.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt;
+                    option.textContent = labels[opt] || opt;
+                    privacySelect.appendChild(option);
+                });
+            }
+        } else {
+            document.getElementById('tiktok-disconnected-view').classList.remove('hidden');
+            document.getElementById('tiktok-connected-view').classList.add('hidden');
+            if (data.error) {
+                document.getElementById('tiktok-disconnected-view').querySelector('p').textContent = data.error + ". Please reconnect.";
+            }
+        }
+        
+        const disconnectBtn = document.getElementById('tiktok-disconnect-btn');
+        if (disconnectBtn) {
+            disconnectBtn.onclick = async () => {
+                disconnectBtn.textContent = 'Disconnecting...';
+                await fetch('/api/tiktok/disconnect', { method: 'POST' });
+                window.location.reload();
+            };
+        }
+    } catch (e) {
+        console.error("TikTok status error:", e);
+    }
+}
+
+function openTikTokPublishModal() {
+    if (!currentPostInModal || !tiktokConnected) return;
+    
+    document.getElementById('tiktok-modal-img').src = currentPostInModal.final_image_path;
+    document.getElementById('tiktok-preview-title').textContent = currentPostInModal.hook || "Generated Post";
+    document.getElementById('tiktok-preview-desc').textContent = currentPostInModal.body ? currentPostInModal.body.substring(0, 100) + "..." : "";
+    
+    const creatorName = document.getElementById('tiktok-creator-name').textContent;
+    document.getElementById('tiktok-publish-creator').textContent = `● Connected to ${creatorName}`;
+    
+    document.getElementById('tiktok-error-box').classList.add('hidden');
+    
+    document.getElementById('tiktok-publish-modal').classList.remove('hidden');
+}
+
+async function confirmTikTokPublish() {
+    if (!currentPostInModal) return;
+    
+    const btn = document.getElementById('btn-tiktok-confirm');
+    const originalText = btn.innerHTML;
+    const errorBox = document.getElementById('tiktok-error-box');
+    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Publishing...';
+    btn.disabled = true;
+    errorBox.classList.add('hidden');
+    
+    try {
+        const privacyLevel = document.getElementById('tiktok-privacy-select').value;
+        const disableComment = document.getElementById('tiktok-disable-comment').checked;
+        const autoAddMusic = document.getElementById('tiktok-auto-music').checked;
+        
+        const res = await fetch(`/api/tiktok/publish/${currentPostInModal.id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                privacy_level: privacyLevel,
+                disable_comment: disableComment,
+                auto_add_music: autoAddMusic
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.error || "Failed to publish");
+        }
+        
+        btn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Published!';
+        btn.classList.replace('bg-black', 'bg-emerald-600');
+        
+        setTimeout(() => {
+            document.getElementById('tiktok-publish-modal').classList.add('hidden');
+            btn.innerHTML = originalText;
+            btn.classList.replace('bg-emerald-600', 'bg-black');
+            btn.disabled = false;
+            fetchPosts(); // Refresh status
+        }, 2000);
+        
+    } catch (err) {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        errorBox.textContent = err.message;
+        errorBox.classList.remove('hidden');
     }
 }

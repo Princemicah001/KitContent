@@ -376,6 +376,41 @@
                     <!-- Right Column (4 cols) -->
                     <div class="lg:col-span-5 xl:col-span-4 space-y-6">
                         
+                        <!-- TikTok Integration Widget -->
+                        <div class="bg-white rounded-2xl p-5 sm:p-6 card-shadow border border-purple-100/60" id="tiktok-widget">
+                            <div class="flex justify-between items-center mb-4">
+                                <div class="flex items-center text-xs font-bold text-gray-900">
+                                    <div class="w-6 h-6 rounded-lg bg-black text-white flex items-center justify-center mr-2.5 text-[10px] shadow-sm">
+                                        <i class="fab fa-tiktok"></i>
+                                    </div>
+                                    TikTok Integration
+                                </div>
+                                <span class="text-[9px] font-extrabold px-2.5 py-1 rounded-xl bg-gray-100 text-gray-500 uppercase tracking-wide" id="tiktok-status-badge">Checking...</span>
+                            </div>
+                            
+                            <div id="tiktok-disconnected-view" class="hidden">
+                                <p class="text-xs text-gray-500 mb-4">Connect your TikTok account to publish posts directly.</p>
+                                <button onclick="window.location.href='/api/tiktok/connect'" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-2.5 rounded-xl text-xs transition shadow-sm flex items-center justify-center">
+                                    <i class="fab fa-tiktok mr-2"></i> Connect TikTok
+                                </button>
+                            </div>
+
+                            <div id="tiktok-connected-view" class="hidden">
+                                <div class="flex items-center mb-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                    <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 mr-3">
+                                        <i class="fas fa-user text-xs"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-bold text-gray-900 truncate" id="tiktok-creator-name">@creator</p>
+                                        <p class="text-[10px] text-green-600 font-bold">● Connected</p>
+                                    </div>
+                                </div>
+                                <button id="tiktok-disconnect-btn" class="w-full bg-white border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-gray-600 font-bold py-2 rounded-xl text-xs transition">
+                                    Disconnect Account
+                                </button>
+                            </div>
+                        </div>
+                        
                         <!-- Quick Stats Summary Widget -->
                         <div class="bg-white rounded-2xl p-5 sm:p-6 card-shadow border border-purple-100/60">
                             <div class="flex justify-between items-center mb-4">
@@ -646,6 +681,10 @@
                             <i class="fas fa-download text-[10px]"></i>
                             <span>PNG</span>
                         </a>
+                        <button id="btn-tiktok-init" onclick="openTikTokPublishModal()" class="w-full mt-2 bg-black hover:bg-gray-800 text-white font-bold text-[10px] sm:text-xs py-3 rounded-xl shadow transition flex items-center justify-center space-x-2 hidden">
+                            <i class="fab fa-tiktok"></i>
+                            <span>POST TO TIKTOK</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -655,3 +694,70 @@
     <script src="app.js"></script>
 </body>
 </html>
+
+    <!-- TIKTOK PUBLISH MODAL -->
+    <div id="tiktok-publish-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md hidden flex items-center justify-center z-[60] p-4 sm:p-6 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-4xl w-full flex flex-col md:flex-row overflow-hidden shadow-2xl transform transition-all border border-purple-100 relative">
+            <button onclick="document.getElementById('tiktok-publish-modal').classList.add('hidden')" class="absolute top-5 right-6 text-gray-400 hover:text-gray-800 text-2xl font-bold w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition z-10">&times;</button>
+            
+            <div class="md:w-5/12 bg-gray-950 flex items-center justify-center relative p-6">
+                <img id="tiktok-modal-img" src="" alt="TikTok Preview" class="w-full max-h-[70vh] object-contain rounded-xl shadow-lg border border-gray-800">
+                <div class="absolute bottom-10 left-10 right-10 text-white drop-shadow-md">
+                    <p class="font-bold text-sm mb-1" id="tiktok-preview-title">@creator</p>
+                    <p class="text-xs line-clamp-2" id="tiktok-preview-desc"></p>
+                </div>
+            </div>
+            
+            <div class="md:w-7/12 p-6 sm:p-8 flex flex-col justify-between max-h-[85vh] overflow-y-auto bg-[#fcfaff]">
+                <div class="space-y-5">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <div class="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center shadow">
+                            <i class="fab fa-tiktok text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-black text-gray-900 tracking-tight leading-tight">Publish to TikTok</h2>
+                            <p class="text-xs text-green-600 font-bold" id="tiktok-publish-creator">● Connected to @creator</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-4 rounded-xl border border-purple-100 shadow-sm space-y-3">
+                        <div class="text-xs font-bold text-gray-900">Post Metadata</div>
+                        
+                        <div>
+                            <label class="block text-[10px] uppercase font-bold text-gray-400 mb-1">Privacy Level</label>
+                            <select id="tiktok-privacy-select" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs font-medium focus:ring-2 focus:ring-purple-400 focus:outline-none">
+                                <option value="SELF_ONLY">Private (Only me)</option>
+                                <option value="MUTUAL_FOLLOW_FRIENDS">Friends</option>
+                                <option value="PUBLIC_TO_EVERYONE">Public</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-medium text-gray-700">Disable Comments</label>
+                            <input type="checkbox" id="tiktok-disable-comment" class="rounded text-purple-600 focus:ring-purple-500">
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-medium text-gray-700">Auto-add Music</label>
+                            <input type="checkbox" id="tiktok-auto-music" checked class="rounded text-purple-600 focus:ring-purple-500">
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                        <p class="text-[10px] text-blue-700 leading-relaxed font-medium">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <strong>AI-Generated Content Disclosure:</strong> This content was generated using artificial intelligence. By publishing, you are responsible for ensuring it complies with TikTok's Community Guidelines and AI labeling requirements.
+                        </p>
+                    </div>
+                    
+                    <div id="tiktok-error-box" class="hidden bg-red-50 p-4 rounded-xl border border-red-100 text-xs text-red-700 font-medium"></div>
+                </div>
+                
+                <div class="pt-6 mt-4 border-t border-gray-200">
+                    <button id="btn-tiktok-confirm" onclick="confirmTikTokPublish()" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center">
+                        <i class="fab fa-tiktok mr-2"></i> PUBLISH TO TIKTOK NOW
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>

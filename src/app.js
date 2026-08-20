@@ -10,6 +10,7 @@ import { isImageProviderConfigured, generateImage } from './images.js';
 import { generateCandidate, generateBatchTopics, checkUniqueness, scoreQuality, refinePostContent } from './content.js';
 import { composePost } from './composer.js';
 import { validateCandidateJSON, validateGeneratedImage, validateFinalPostPNG } from './validation.js';
+import { tiktokRouter } from './integrations/tiktok/routes.js';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ const generatedPath = process.env.VERCEL ? '/tmp/generated' : path.join(process.
 
 app.use(express.static(publicPath));
 app.use('/generated', express.static(generatedPath));
+app.use('/api/tiktok', tiktokRouter);
 
 // Lazy DB & Gemini initialization middleware for Vercel Serverless
 let initialized = false;
