@@ -59,6 +59,10 @@ export async function publishPhotoToTikTok(post, privacyLevel, disableComment, a
       body: JSON.stringify(payload)
     });
 
+    if ((response.error && response.error.code !== 'ok' && response.error.code !== 0) || (response.data && response.data.error_code !== 0)) {
+      throw new Error(response.error.message || (response.data && response.data.error_message) || JSON.stringify(response));
+    }
+
     const data = response.data || response;
     
     if (data && data.publish_id) {

@@ -60,7 +60,7 @@ export async function handleCallback(code, state, savedState, savedVerifier, dyn
     body: body.toString()
   });
 
-  if (response.error || (response.data && response.data.error_code !== 0)) {
+  if ((response.error && response.error.code !== 'ok' && response.error.code !== 0) || (response.data && response.data.error_code !== 0)) {
     throw new Error(response.error_description || "Failed to exchange token");
   }
 
