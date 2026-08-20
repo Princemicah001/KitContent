@@ -514,15 +514,17 @@ async function generateFromTrend(topic) {
 async function generatePosts() {
     const countSelect = document.getElementById('count-select');
     const count = parseInt(countSelect.value || 5, 10);
+    const topicInput = document.getElementById('topic-input');
+    const topic = topicInput ? (topicInput.value || 'Psychology') : 'Psychology';
     
     const logBox = document.getElementById('progress-log');
-    logBox.innerHTML = '<div>Initiating generation process...</div>';
+    logBox.innerHTML = `<div>Initiating generation process for topic: ${topic}...</div>`;
     
     try {
         const res = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ count })
+            body: JSON.stringify({ count, topic })
         });
         const data = await res.json();
         

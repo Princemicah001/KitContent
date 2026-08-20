@@ -273,7 +273,7 @@
                             <h2 class="text-gray-900 font-bold text-sm mb-3 flex items-center tracking-tight">
                                 <i class="fas fa-sliders-h text-purple-600 mr-2 text-xs"></i> Studio Controls & Automation
                             </h2>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
                                 
                                 <div class="bg-white p-4 rounded-2xl card-shadow border border-purple-100/60 flex flex-col justify-between h-34">
                                     <div class="flex justify-between items-center mb-2">
@@ -309,6 +309,24 @@
                                     <div>
                                         <input type="text" id="schedule-time" placeholder="e.g. 09:00, 15:30" class="w-full bg-purple-50 border border-purple-200 text-gray-900 text-xs font-bold rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-purple-400">
                                         <p class="text-[10px] font-medium text-gray-500 mt-1.5">Recurring Runner</p>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white p-4 rounded-2xl card-shadow border border-purple-100/60 flex flex-col justify-between h-34">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-[10px] font-extrabold text-blue-600 uppercase tracking-wider">CONTENT NICHE</span>
+                                        <i class="fas fa-hashtag text-blue-600 text-xs"></i>
+                                    </div>
+                                    <div>
+                                        <input type="text" id="topic-input" list="topic-suggestions" placeholder="e.g. Psychology" value="Psychology" class="w-full bg-blue-50 border border-blue-200 text-gray-900 text-xs font-bold rounded-xl p-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                        <datalist id="topic-suggestions">
+                                            <option value="Psychology">
+                                            <option value="Motivation">
+                                            <option value="Finance">
+                                            <option value="Fitness">
+                                            <option value="Technology">
+                                        </datalist>
+                                        <p class="text-[10px] font-medium text-gray-500 mt-1.5">Topic / Theme</p>
                                     </div>
                                 </div>
 

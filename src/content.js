@@ -1,19 +1,17 @@
 import { generateContentJSON } from './gemini.js';
 import { getDb, getPosts } from './database.js';
 
-const SYSTEM_PROMPT = `
-You are an expert content creator and behavioral psychologist.
-Generate original, visually consistent social media post content focused on psychology, human behavior, relationships, emotional intelligence, self-awareness, and life insights.
+function getSystemPrompt(niche = 'Psychology') {
+  return `
+You are an expert content creator.
+Generate original, visually consistent social media post content focused on ${niche}.
 
 RULES:
-- Do not invent scientific studies.
-- Do not fabricate psychologists or statistics.
-- Do not claim "science proves" unless well established.
+- Do not invent scientific studies or statistics.
+- Do not fabricate experts.
 - Do not create fake quotations.
 - Do not present speculation as fact.
-- Do not diagnose mental illnesses.
-- Do not use manipulative "psychology says" clickbait.
-- Do not use absolute claims about human behavior.
+- Do not use absolute claims unless universally true.
 - Prefer cautious language (e.g., "research suggests", "one possible explanation").
 - Avoid repetitive openings ("Did you know...", "Here are 5...").
 - Keep tone intelligent, empathetic, and professional.
@@ -35,7 +33,7 @@ LENGTH RULES (STRICT MAXIMUMS - DO NOT EXCEED TO PREVENT UI OVERFLOW):
 
 JSON FORMAT EXACTLY:
 {
-  "category": "Psychology",
+  "category": "${niche}",
   "topic": "String",
   "hook": "String",
   "body": "String",
@@ -45,6 +43,7 @@ JSON FORMAT EXACTLY:
   "image_prompt": "Descriptive visual scene matching the emotion..."
 }
 `;
+}
 
 function normalizeTopic(topicStr) {
   if (!topicStr) return '';
@@ -132,22 +131,22 @@ export async function scoreQuality(candidate) {
   return Math.max(50, score);
 }
 
-export async function generateBatchTopics(existingTopics = [], count = 20) {
+export async function generateBatchTopics(existingTopics = [], count = 20, niche = 'Psychology') {
   const cleanTopicsList = existingTopics.filter(Boolean);
   let avoidTopicsPrompt = "";
   if (cleanTopicsList.length > 0) {
     avoidTopicsPrompt = `\nDO NOT repeat any of these previously covered topics:\n- ${cleanTopicsList.join('\n- ')}`;
   }
 
-  const prompt = `Generate a JSON object with a 'topics' array containing AT LEAST ${count} COMPLETELY UNIQUE psychology & human behavior concepts.${avoidTopicsPrompt}
+  const prompt = `Generate a JSON object with a 'topics' array containing AT LEAST ${count} COMPLETELY UNIQUE ${niche} concepts.${avoidTopicsPrompt}
 Each item in the array must be an object with keys:
 {
   "topics": [
-    { "topic": "Concept Name", "category": "Psychology/Behavioral Science" }
+    { "topic": "Concept Name", "category": "${niche}" }
   ]
 }`;
 
-  const res = await generateContentJSON(prompt, SYSTEM_PROMPT);
+  const res = await generateContentJSON(prompt, getSystemPrompt(niche));
   const rawList = res.topics || [];
   
   const uniqueBatch = [];
@@ -161,7 +160,7 @@ Each item in the array must be an object with keys:
       existingSet.add(norm);
       uniqueBatch.push({
         topic: topicStr,
-        category: item.category || 'Psychology'
+        category: item.category || niche
       });
     }
   }
@@ -169,30 +168,30 @@ Each item in the array must be an object with keys:
   return uniqueBatch;
 }
 
-export async function generateCandidate(existingTopics = [], targetTopic = null) {
+export async function generateCandidate(existingTopics = [], targetTopic = null, niche = 'Psychology') {
   let topicInstruction = "";
   if (targetTopic) {
-    topicInstruction = `\nFOCUS SPECIFICALLY on the psychology concept: "${targetTopic}". Do NOT change the topic title.`;
+    topicInstruction = `\nFOCUS SPECIFICALLY on the concept: "${targetTopic}". Do NOT change the topic title.`;
   } else if (existingTopics.length > 0) {
     topicInstruction = `\nDO NOT generate content about any of the following previously covered topics:\n- ${existingTopics.slice(0, 30).join('\n- ')}`;
   }
 
-  const prompt = `Generate one unique psychology/human behavior social media post.${topicInstruction}
+  const prompt = `Generate one unique ${niche} social media post.${topicInstruction}
 Return ONLY a JSON object with EXACTLY these keys:
 {
-  "category": "Psychology",
+  "category": "${niche}",
   "topic": "${targetTopic || 'Unique Topic Name'}",
   "hook": "5-12 word short punchy hook sentence",
   "body": "15-30 word extremely concise informative text explaining the concept",
   "takeaway": "8-15 word short actionable or reflective takeaway",
   "caption": "15-40 word caption for social media",
-  "hashtags": ["#psychology", "#humanbehavior", "#selfawareness"],
+  "hashtags": ["#${niche.replace(/\s+/g, '')}"],
   "image_prompt": "Descriptive visual scene matching the emotion (can be bright, dark cinematic, illustrative, photorealistic, minimalist depending on mood)... vertical 9:16 composition, high resolution, no text."
 }`;
 
-  const candidate = await generateContentJSON(prompt, SYSTEM_PROMPT);
+  const candidate = await generateContentJSON(prompt, getSystemPrompt(niche));
   
-  candidate.category = candidate.category || "Psychology";
+  candidate.category = candidate.category || niche;
   candidate.topic = targetTopic || candidate.topic || candidate.title || "Human Behavior";
   candidate.hook = candidate.hook || candidate.title || candidate.headline || "";
   candidate.body = candidate.body || candidate.content || candidate.explanation || candidate.description || "";

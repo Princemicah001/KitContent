@@ -219,21 +219,21 @@ app.post('/api/schedule', (req, res) => {
   res.json(scheduleState);
 });
 
-async function ensureTopicPoolFilled(requiredCount = 5) {
+async function ensureTopicPoolFilled(requiredCount = 5, niche = 'Psychology') {
   let pool = await getUnconsumedTopicPool();
   if (pool.length >= requiredCount) {
     return pool;
   }
 
-  addLog(`📦 Topic pool low (${pool.length} available). Requesting 20 fresh unique topics in single Gemini batch call...`);
+  addLog(`📦 Topic pool low (${pool.length} available). Requesting 20 fresh unique topics for ${niche} in single Gemini batch call...`);
   
   const existingPosts = await getPosts();
   const existingTopics = existingPosts.map(p => p.topic).filter(Boolean);
   
   try {
-    const newTopicsBatch = await generateBatchTopics(existingTopics, 20);
+    const newTopicsBatch = await generateBatchTopics(existingTopics, 20, niche);
     await addTopicsToPool(newTopicsBatch);
-    addLog(`✅ Successfully pre-audited & stored ${newTopicsBatch.length} unique topics in local topic pool!`);
+    addLog(`✅ Successfully pre-audited & stored ${newTopicsBatch.length} unique topics for ${niche} in local topic pool!`);
     await logMetric('topics_pool_replenished', { count: newTopicsBatch.length });
   } catch (err) {
     addLog(`⚠️ Topic batch pre-generation notice: ${err.message}`);
@@ -252,8 +252,10 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null, userId = n
   try {
     let successCount = 0;
 
+    let activeNiche = seedTopic || 'Psychology';
+
     if (!seedTopic) {
-      await ensureTopicPoolFilled(targetCount);
+      await ensureTopicPoolFilled(targetCount, activeNiche);
     }
     
     for (let i = 0; i < targetCount; i++) {
@@ -284,7 +286,7 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null, userId = n
             poolItem = currentPool[0];
             targetTopicName = poolItem.topic;
           } else {
-            await ensureTopicPoolFilled(5);
+            await ensureTopicPoolFilled(5, activeNiche);
             continue;
           }
         }
@@ -295,7 +297,7 @@ async function runGenerationBatch(targetCount = 10, seedTopic = null, userId = n
           const existingPosts = await getPosts();
           const existingTopics = existingPosts.map(p => p.topic).filter(Boolean);
           
-          candidate = await generateCandidate(existingTopics, targetTopicName);
+          candidate = await generateCandidate(existingTopics, targetTopicName, activeNiche);
           addLog(`💡 Concept generated: "${candidate.topic}" (${candidate.category})`);
           
           uniqueInfo = await checkUniqueness(candidate);
