@@ -32,9 +32,12 @@ export async function publishPhotoToTikTok(post, privacyLevel, disableComment, a
     description = description.substring(0, 2000);
   }
 
+  let title = post.hook || "Generated Post";
+  if (title.length > 90) title = title.substring(0, 87) + '...';
+
   const payload = {
     post_info: {
-      title: post.hook || "Generated Post",
+      title: title,
       description: description,
       privacy_level: privacyLevel,
       disable_comment: disableComment,
