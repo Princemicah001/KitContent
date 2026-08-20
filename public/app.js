@@ -10,6 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('count-select').addEventListener('change', syncDialWithSelect);
     document.getElementById('close-modal').addEventListener('click', closeModal);
     
+    const groqBtn = document.getElementById('groq-analyze-btn');
+    if (groqBtn) {
+        groqBtn.addEventListener('click', fetchGroqInsights);
+    }
+    
     // Mobile Sidebar Toggle
     const mobileBtn = document.getElementById('mobile-menu-btn');
     const sidebar = document.getElementById('sidebar');
@@ -65,7 +70,6 @@ function showPage(pageId) {
         renderQualityList(allPostsCache);
     } else if (pageId === 'analytics') {
         fetchStats();
-        fetchGroqInsights();
     }
 }
 
@@ -261,15 +265,7 @@ async function pollProgress() {
                 logBox.scrollTop = logBox.scrollHeight;
             }
             
-            // Check for new failures in the last 3 logs
-            const recentLogs = data.logs.slice(-3);
-            const hasError = recentLogs.some(log => log.toLowerCase().includes('failed') || log.toLowerCase().includes('error'));
-            if (hasError) {
-                if (!window.lastErrorFetch || (Date.now() - window.lastErrorFetch > 30000)) {
-                    window.lastErrorFetch = Date.now();
-                    fetchGroqInsights();
-                }
-            }
+            // Idle groq analysis removed by user request
         }
     } catch (err) {
         console.error("Progress polling error:", err);

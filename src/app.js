@@ -68,11 +68,8 @@ function addLog(msg) {
 
 app.get('/api/health', async (req, res) => {
   let groqModel = 'groq/compound';
-  try {
-    groqModel = await fetchActiveGroqModel();
-  } catch (e) {
-    console.warn("Groq model check:", e.message);
-  }
+  // Avoid idle groq API calls on health check
+  // groqModel = await fetchActiveGroqModel();
   res.json({
     status: 'ok',
     gemini: !!process.env.GEMINI_API_KEY,
