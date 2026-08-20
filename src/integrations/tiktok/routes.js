@@ -24,8 +24,8 @@ tiktokRouter.get('/connect', (req, res) => {
 
 tiktokRouter.get('/callback', async (req, res) => {
   const { code, state, error, error_description } = req.query;
-  const savedState = req.headers.cookie?.split('tiktok_oauth_state=')[1]?.split(';')[0];
-  const savedVerifier = req.headers.cookie?.split('tiktok_code_verifier=')[1]?.split(';')[0];
+  const savedState = req.cookies?.tiktok_oauth_state;
+  const savedVerifier = req.cookies?.tiktok_code_verifier;
   let protocol = req.headers['x-forwarded-proto'] || req.protocol;
   if (protocol.includes(',')) protocol = protocol.split(',')[0].trim();
   if (req.get('host').includes('onrender.com')) protocol = 'https';
@@ -51,10 +51,7 @@ tiktokRouter.get('/callback', async (req, res) => {
 
 tiktokRouter.get('/status', async (req, res) => {
   try {
-    const cookies = req.headers.cookie;
-    if (!cookies) return res.json({ connected: false });
-    
-    const sessionId = cookies.split('session_id=')[1]?.split(';')[0];
+    const sessionId = req.cookies?.session_id;
     if (!sessionId) return res.json({ connected: false });
     
     const session = await getSession(sessionId);
@@ -85,15 +82,12 @@ tiktokRouter.get('/status', async (req, res) => {
 
 tiktokRouter.post('/disconnect', async (req, res) => {
   try {
-    const cookies = req.headers.cookie;
-    if (cookies) {
-      const sessionId = cookies.split('session_id=')[1]?.split(';')[0];
-      if (sessionId) {
-        const session = await getSession(sessionId);
-        if (session) {
-          await deleteTikTokAccount(session.open_id);
-          await deleteSession(sessionId);
-        }
+    const sessionId = req.cookies?.session_id;
+    if (sessionId) {
+      const session = await getSession(sessionId);
+      if (session) {
+        await deleteTikTokAccount(session.open_id);
+        await deleteSession(sessionId);
       }
     }
     res.clearCookie('session_id', { path: '/' });
@@ -105,9 +99,7 @@ tiktokRouter.post('/disconnect', async (req, res) => {
 
 tiktokRouter.post('/publish/:postId', async (req, res) => {
   try {
-    const cookies = req.headers.cookie;
-    if (!cookies) return res.status(401).json({ error: 'Unauthorized' });
-    const sessionId = cookies.split('session_id=')[1]?.split(';')[0];
+    const sessionId = req.cookies?.session_id;
     if (!sessionId) return res.status(401).json({ error: 'Unauthorized' });
     const session = await getSession(sessionId);
     if (!session) return res.status(401).json({ error: 'Unauthorized' });

@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs/promises';
+import cookieParser from 'cookie-parser';
 import { v4 as uuidv4 } from 'uuid';
 import { initDb, getPosts, getPost, savePost, getStats, logMetric, addTopicsToPool, getUnconsumedTopicPool, consumeTopicFromPool } from './database.js';
 import { initGemini, getTrendingPsychologyTopics } from './gemini.js';
@@ -18,6 +19,7 @@ dotenv.config();
 const app = express();
 app.set('trust proxy', 1);
 app.use(express.json());
+app.use(cookieParser());
 
 // Ensure directories exist
 const publicPath = path.join(process.cwd(), 'public');
