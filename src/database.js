@@ -2,6 +2,7 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
 import fs from 'fs/promises';
+import crypto from 'crypto';
 
 let db;
 
@@ -303,7 +304,7 @@ export async function deleteTikTokAccount(openId = null) {
 // Session Management
 export async function createSession(openId) {
   if (!db) return null;
-  const sessionId = require('crypto').randomUUID();
+  const sessionId = crypto.randomUUID();
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7 day session
   

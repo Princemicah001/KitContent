@@ -2,8 +2,7 @@ import express from 'express';
 import { getAuthorizationUrl, handleCallback, disconnectAccount } from './oauth.js';
 import { getCreatorInfo } from './creator.js';
 import { publishPhotoToTikTok } from './publishing.js';
-import { getTikTokAccount, createSession, deleteSession } from '../../database.js';
-import { getPost } from '../../database.js';
+import { getTikTokAccount, createSession, getSession, deleteSession, deleteTikTokAccount, getPost } from '../../database.js';
 
 export const tiktokRouter = express.Router();
 
@@ -58,7 +57,7 @@ tiktokRouter.get('/status', async (req, res) => {
     const sessionId = cookies.split('session_id=')[1]?.split(';')[0];
     if (!sessionId) return res.json({ connected: false });
     
-    const session = await require('../../database.js').getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) return res.json({ connected: false });
     
     const account = await getTikTokAccount(session.open_id);
@@ -90,9 +89,9 @@ tiktokRouter.post('/disconnect', async (req, res) => {
     if (cookies) {
       const sessionId = cookies.split('session_id=')[1]?.split(';')[0];
       if (sessionId) {
-        const session = await require('../../database.js').getSession(sessionId);
+        const session = await getSession(sessionId);
         if (session) {
-          await require('../../database.js').deleteTikTokAccount(session.open_id);
+          await deleteTikTokAccount(session.open_id);
           await deleteSession(sessionId);
         }
       }
@@ -110,7 +109,7 @@ tiktokRouter.post('/publish/:postId', async (req, res) => {
     if (!cookies) return res.status(401).json({ error: 'Unauthorized' });
     const sessionId = cookies.split('session_id=')[1]?.split(';')[0];
     if (!sessionId) return res.status(401).json({ error: 'Unauthorized' });
-    const session = await require('../../database.js').getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) return res.status(401).json({ error: 'Unauthorized' });
     
     const post = await getPost(req.params.postId, session.open_id);
