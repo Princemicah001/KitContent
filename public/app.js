@@ -658,8 +658,13 @@ async function checkTikTokStatus() {
         tiktokConnected = data.connected;
         
         const loginOverlay = document.getElementById('login-overlay');
+        const loginBtn = document.getElementById('btn-tiktok-login');
+        const loginSpinner = document.getElementById('login-spinner');
+        
         if (!tiktokConnected) {
             loginOverlay.classList.remove('hidden');
+            if (loginBtn) loginBtn.classList.remove('hidden');
+            if (loginSpinner) loginSpinner.classList.add('hidden');
         } else {
             loginOverlay.classList.add('hidden');
         }

@@ -120,7 +120,7 @@
 <body class="flex flex-col md:flex-row w-screen h-screen overflow-hidden">
 
     <!-- LOGIN OVERLAY -->
-    <div id="login-overlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#f4ecff]/95 backdrop-blur-md transition-opacity duration-300 hidden">
+    <div id="login-overlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#f4ecff]/95 backdrop-blur-md transition-opacity duration-300">
         <div class="bg-white rounded-3xl p-10 max-w-md w-full mx-4 card-shadow text-center border border-purple-100">
             <div class="w-20 h-20 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                 <i class="fab fa-tiktok text-3xl text-purple-600"></i>
@@ -128,9 +128,14 @@
             <h2 class="text-2xl font-bold text-gray-900 mb-2 tracking-tight">KitContent Studio</h2>
             <p class="text-gray-500 text-sm mb-8">Sign in with your TikTok account to manage your AI generated content and automated posting pipeline.</p>
             
-            <a href="/api/tiktok/connect" class="block w-full bg-[#000000] hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded-xl transition duration-200 shadow-md">
+            <a id="btn-tiktok-login" href="/api/tiktok/connect" class="block w-full bg-[#000000] hover:bg-gray-800 text-white font-bold py-3.5 px-6 rounded-xl transition duration-200 shadow-md hidden">
                 <i class="fab fa-tiktok mr-2"></i> Log in with TikTok
             </a>
+            
+            <div id="login-spinner" class="py-4 flex justify-center items-center">
+                <i class="fas fa-spinner fa-spin text-purple-600 text-2xl"></i>
+                <span class="ml-3 text-sm font-medium text-purple-700">Checking session...</span>
+            </div>
             
             <div class="mt-6 text-[10px] text-gray-400">
                 By logging in, you agree to our Terms of Service and Privacy Policy.
