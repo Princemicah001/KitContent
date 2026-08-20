@@ -51,7 +51,8 @@ async function refreshAccessToken(refreshToken) {
     body: body.toString()
   });
 
-  if ((response.error && response.error.code !== 'ok' && response.error.code !== 0) || (response.data && response.data.error_code !== 0)) {
+  const hasDataError = response.data && 'error_code' in response.data && response.data.error_code !== 0;
+  if ((response.error && response.error.code !== 'ok' && response.error.code !== 0) || hasDataError) {
     throw new Error(response.error_description || response.message || "Failed to refresh token");
   }
 
