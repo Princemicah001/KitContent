@@ -8,7 +8,11 @@ import { getPost } from '../../database.js';
 export const tiktokRouter = express.Router();
 
 tiktokRouter.get('/connect', (req, res) => {
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  let protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  if (protocol.includes(',')) protocol = protocol.split(',')[0].trim();
+  // Force HTTPS if on Render
+  if (req.get('host').includes('onrender.com')) protocol = 'https';
+  
   const host = req.get('host');
   const dynamicRedirectUri = `${protocol}://${host}/api/tiktok/callback`;
   const { url, state, codeVerifier } = getAuthorizationUrl(req, dynamicRedirectUri);
@@ -23,7 +27,10 @@ tiktokRouter.get('/callback', async (req, res) => {
   const { code, state, error, error_description } = req.query;
   const savedState = req.headers.cookie?.split('tiktok_oauth_state=')[1]?.split(';')[0];
   const savedVerifier = req.headers.cookie?.split('tiktok_code_verifier=')[1]?.split(';')[0];
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  let protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  if (protocol.includes(',')) protocol = protocol.split(',')[0].trim();
+  if (req.get('host').includes('onrender.com')) protocol = 'https';
+  
   const host = req.get('host');
   const dynamicRedirectUri = `${protocol}://${host}/api/tiktok/callback`;
 
@@ -82,4 +89,25 @@ tiktokRouter.post('/publish/:postId', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+tiktokRouter.get('/debug-url', (req, res) => {
+  let protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  if (protocol.includes(',')) protocol = protocol.split(',')[0].trim();
+  if (req.get('host').includes('onrender.com')) protocol = 'https';
+  
+  const host = req.get('host');
+  const dynamicRedirectUri = `${protocol}://${host}/api/tiktok/callback`;
+  const finalUri = process.env.TIKTOK_REDIRECT_URI || dynamicRedirectUri;
+  
+  res.send(`
+    <h3>TikTok Debug</h3>
+    <p><strong>Host:</strong> ${host}</p>
+    <p><strong>Protocol:</strong> ${protocol}</p>
+    <p><strong>Generated URI:</strong> ${dynamicRedirectUri}</p>
+    <p><strong>Environment TIKTOK_REDIRECT_URI:</strong> ${process.env.TIKTOK_REDIRECT_URI || 'Not Set'}</p>
+    <p><strong>Final URI sent to TikTok:</strong> ${finalUri}</p>
+    <hr>
+    <p>You MUST copy the <b>Final URI sent to TikTok</b> exactly as it is shown above and paste it into the Redirect URI whitelist in your TikTok Developer Portal!</p>
+  `);
 });
