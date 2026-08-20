@@ -9,13 +9,13 @@ function base64URLEncode(buffer) {
     .replace(/=/g, '');
 }
 
-export function getAuthorizationUrl(req) {
+export function getAuthorizationUrl(req, dynamicRedirectUri) {
   const state = crypto.randomBytes(32).toString('hex');
   const codeVerifier = base64URLEncode(crypto.randomBytes(32));
   const codeChallenge = base64URLEncode(crypto.createHash('sha256').update(codeVerifier).digest());
   
   // Store state securely in a cookie or session. We'll use a secure HTTP-only cookie.
-  const redirectUri = process.env.TIKTOK_REDIRECT_URI || 'http://localhost:3000/api/tiktok/callback';
+  const redirectUri = process.env.TIKTOK_REDIRECT_URI || dynamicRedirectUri || 'http://localhost:3000/api/tiktok/callback';
   const clientKey = process.env.TIKTOK_CLIENT_KEY;
   
   const url = new URL('https://www.tiktok.com/v2/auth/authorize/');
@@ -30,7 +30,7 @@ export function getAuthorizationUrl(req) {
   return { url: url.toString(), state, codeVerifier };
 }
 
-export async function handleCallback(code, state, savedState, savedVerifier) {
+export async function handleCallback(code, state, savedState, savedVerifier, dynamicRedirectUri) {
   if (!state || state !== savedState) {
     throw new Error("Invalid authorization state. Potential CSRF attack.");
   }
@@ -40,7 +40,7 @@ export async function handleCallback(code, state, savedState, savedVerifier) {
 
   const clientKey = process.env.TIKTOK_CLIENT_KEY;
   const clientSecret = process.env.TIKTOK_CLIENT_SECRET;
-  const redirectUri = process.env.TIKTOK_REDIRECT_URI || 'http://localhost:3000/api/tiktok/callback';
+  const redirectUri = process.env.TIKTOK_REDIRECT_URI || dynamicRedirectUri || 'http://localhost:3000/api/tiktok/callback';
 
   const body = new URLSearchParams({
     client_key: clientKey,

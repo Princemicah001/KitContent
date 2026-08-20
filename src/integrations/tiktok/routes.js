@@ -8,7 +8,10 @@ import { getPost } from '../../database.js';
 export const tiktokRouter = express.Router();
 
 tiktokRouter.get('/connect', (req, res) => {
-  const { url, state, codeVerifier } = getAuthorizationUrl(req);
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.get('host');
+  const dynamicRedirectUri = `${protocol}://${host}/api/tiktok/callback`;
+  const { url, state, codeVerifier } = getAuthorizationUrl(req, dynamicRedirectUri);
   // Send state and PKCE code_verifier back in HttpOnly cookies
   const cookieOpts = { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 1000 * 60 * 10, sameSite: 'lax' };
   res.cookie('tiktok_oauth_state', state, cookieOpts);
@@ -20,10 +23,13 @@ tiktokRouter.get('/callback', async (req, res) => {
   const { code, state, error, error_description } = req.query;
   const savedState = req.headers.cookie?.split('tiktok_oauth_state=')[1]?.split(';')[0];
   const savedVerifier = req.headers.cookie?.split('tiktok_code_verifier=')[1]?.split(';')[0];
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.get('host');
+  const dynamicRedirectUri = `${protocol}://${host}/api/tiktok/callback`;
 
   try {
     if (error) throw new Error(error_description || error);
-    await handleCallback(code, state, savedState, savedVerifier);
+    await handleCallback(code, state, savedState, savedVerifier, dynamicRedirectUri);
     res.redirect('/?tiktok_connected=true');
   } catch (err) {
     console.error("TikTok callback error:", err.message);
