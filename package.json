@@ -5,12 +5,12 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "npm run build && node src/server.js",
     "dev": "node --watch src/server.js",
     "build": "npx tailwindcss -i ./src/input.css -o ./public/output.css --minify && echo 'Build complete'"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.1"
+    "tailwindcss": "^3.4.19"
   },
   "dependencies": {
     "@google/generative-ai": "^0.2.1",

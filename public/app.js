@@ -1,8 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    fetchHealth();
-    fetchStats();
-    fetchPosts();
-    fetchSchedule();
     syncDialWithSelect();
     checkTikTokStatus();
 
@@ -680,6 +676,11 @@ async function checkTikTokStatus() {
             
             const sidebarProfile = document.getElementById('sidebar-profile-name');
             if (sidebarProfile) sidebarProfile.textContent = "@" + (data.creator || 'creator');
+            
+            // Load dashboard data now that we are connected
+            fetchStats();
+            fetchPosts();
+            fetchSchedule();
             
             // Populate privacy options based on creator info
             const privacySelect = document.getElementById('tiktok-privacy-select');
